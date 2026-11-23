@@ -27,6 +27,26 @@ export async function sendLoginLink(form: FormData) {
   redirect('/login?sent=1');
 }
 
+export async function passwordAuth(form: FormData) {
+  const email = text(form, 'email');
+  const password = String(form.get('password') ?? '');
+  const mode = text(form, 'mode');
+  const back = (m: string) => redirect('/login?error=' + encodeURIComponent(m));
+  if (!/^\S+@\S+\.\S+$/.test(email)) back('Enter a valid email address.');
+  if (password.length < 8) back('Use a password of at least 8 characters.');
+  const supabase = await serverClient();
+  if (mode === 'signup') {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) back(/already registered/i.test(error.message) ? 'You already have an account. Sign in instead.' : error.message);
+    if (!data?.session) redirect('/login?sent=1');
+  } else {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) back(/invalid login/i.test(error.message) ? "That email and password don't match. New here? Create an account." : error.message);
+  }
+  revalidatePath('/');
+  redirect('/');
+}
+
 export async function signOut() {
   const supabase = await serverClient();
   await supabase.auth.signOut();
