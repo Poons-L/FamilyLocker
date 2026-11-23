@@ -40,3 +40,8 @@ npm run dev       # http://localhost:3000
 4. Medical, Death and Lost Documents emergency flows
 5. Search, filtered by permission first
 6. Reminders and the audit trail on every share or view
+
+## Where it runs
+
+- **App:** Vercel project `familyos` → https://familyos-peach.vercel.app (servers in Mumbai, `bom1`)
+- **Database:** Supabase project **FamilyOS** (`zrtxegzgbhluwvnjsfrm`, Mumbai). Its own project, separate from any other app.
