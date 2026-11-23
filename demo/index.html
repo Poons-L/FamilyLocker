@@ -1,0 +1,636 @@
+<title>FamilyOS Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: a calm, phone-first app shell. Sticky header with "view as" and the emergency button, scrollable tabs, one content column. */
+:root{
+  --bg:#F3F6F5; --surface:#FFFFFF; --sunk:#E9EFED; --ink:#17302C; --muted:#5A6D69; --line:#D8E2DF;
+  --accent:#1E6B62; --accent-ink:#FFFFFF; --accent-soft:#DDEEEA;
+  --warn:#9A6212; --warn-soft:#FAEFD9; --crit:#A3402F; --crit-soft:#F6E1DC; --ok:#2C7549; --ok-soft:#DDF0E3;
+  --sos:#B24A33; --sos-ink:#FFFFFF;
+  --f-display:"Outfit", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1817; --surface:#152321; --sunk:#1B2D2A; --ink:#E4EEEB; --muted:#98ADA8; --line:#284039;
+  --accent:#5BC0B1; --accent-ink:#06201C; --accent-soft:#1A3833;
+  --warn:#E2B15A; --warn-soft:#352B16; --crit:#EE8E7F; --crit-soft:#3A1F1A; --ok:#6CC48E; --ok-soft:#183324;
+  --sos:#E07A63; --sos-ink:#1A0B07; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0E1817; --surface:#152321; --sunk:#1B2D2A; --ink:#E4EEEB; --muted:#98ADA8; --line:#284039;
+  --accent:#5BC0B1; --accent-ink:#06201C; --accent-soft:#1A3833;
+  --warn:#E2B15A; --warn-soft:#352B16; --crit:#EE8E7F; --crit-soft:#3A1F1A; --ok:#6CC48E; --ok-soft:#183324;
+  --sos:#E07A63; --sos-ink:#1A0B07; color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-0.01em}
+h2{font-size:1.35rem;font-weight:600}
+h3{font-size:1.05rem;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;flex-direction:column;min-width:0;flex:1 1 180px}
+.brand b{font-family:var(--f-display);font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
+.brand b span{color:var(--accent)}
+.brand small{color:var(--muted);font-size:.8rem}
+.viewas{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+select,input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px}
+.sos{background:var(--sos);color:var(--sos-ink);border:0;border-radius:999px;padding:10px 16px;font-weight:600;min-height:44px}
+.tabs{overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs ul{display:flex;gap:4px;list-style:none;margin:0;padding:0 0 8px}
+.tabs button{background:none;border:0;border-radius:999px;padding:8px 14px;white-space:nowrap;color:var(--muted);font-weight:500;min-height:40px}
+.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+
+main{padding-block:20px 80px;display:flex;flex-direction:column;gap:20px}
+.banner{background:var(--sunk);border-radius:var(--r);padding:12px 14px;font-size:.88rem;color:var(--muted)}
+.banner b{color:var(--ink)}
+
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr;gap:20px}
+@media (min-width:760px){.grid2{grid-template-columns:1.1fr .9fr}}
+
+/* score */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.ring{width:118px;height:118px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .val b{font-family:var(--f-display);font-size:2rem;font-weight:700;line-height:1}
+.ring .val small{font-size:.72rem;color:var(--muted)}
+.spof{font-family:var(--f-display);font-size:1.3rem;font-weight:600;line-height:1.3}
+.spof em{font-style:normal;color:var(--crit)}
+.breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.meter{display:flex;flex-direction:column;gap:4px;font-size:.82rem}
+.meter .track{height:6px;border-radius:6px;background:var(--sunk);overflow:hidden}
+.meter .fill{height:100%;background:var(--accent);border-radius:6px;transition:width .5s ease}
+
+/* actions */
+.actions{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.action{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:12px;border-radius:12px;background:var(--sunk)}
+.action .n{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.85rem}
+.action .body{display:flex;flex-direction:column;gap:8px;min-width:0}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:500;min-height:40px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* lists */
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.list li{border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.itemrow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;width:100%;text-align:left;background:none;border:0;padding:12px 2px;min-height:48px}
+.itemrow .main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.itemrow .t{font-weight:600}
+.pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pill{font-size:.74rem;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;background:var(--sunk);color:var(--muted)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+
+/* category map */
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+
+/* who knows what */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.9rem}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:center}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:.78rem;color:var(--muted);font-weight:600;background:var(--sunk)}
+tbody tr:last-child td{border-bottom:0}
+.cell{display:inline-flex;flex-direction:column;align-items:center;font-size:.72rem;color:var(--muted);line-height:1.2}
+.cell b{font-size:1rem;color:var(--ok)}
+.cell.none b{color:var(--line)}
+.callouts{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.callouts li{padding:10px 12px;border-radius:10px;background:var(--crit-soft);color:var(--ink);font-size:.92rem}
+.callouts li strong{color:var(--crit)}
+
+/* ask */
+.ask{display:flex;gap:8px}
+.ask input{flex:1;min-width:0;font-size:1rem;min-height:48px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;min-height:36px}
+.answer{border-left:4px solid var(--accent);padding:12px 14px;background:var(--surface);border-radius:0 12px 12px 0;display:flex;flex-direction:column;gap:6px}
+dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0;font-size:.9rem}
+dl.facts dt{color:var(--muted)}
+dl.facts dd{margin:0;min-width:0}
+
+/* emergency */
+.emg{background:var(--surface);border:2px solid var(--sos);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:16px}
+.scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.scen button{text-align:left;border:1px solid var(--line);background:var(--sunk);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px;min-height:80px}
+.scen button[aria-pressed="true"]{border-color:var(--sos);background:var(--crit-soft)}
+.scen button b{font-family:var(--f-display);font-size:1.05rem}
+.scen button.soon{opacity:.6}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:s}
+.step{display:grid;grid-template-columns:32px 1fr;gap:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.step.done{opacity:.55}
+.step .chk{width:32px;height:32px;border-radius:8px;border:2px solid var(--accent);background:var(--surface);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent)}
+.step.done .chk{background:var(--accent);color:var(--accent-ink)}
+.step .body{display:flex;flex-direction:column;gap:8px;min-width:0}
+.step .t{font-weight:600;font-size:1.02rem}
+.find{font-size:.88rem;padding:8px 10px;border-radius:8px;background:var(--sunk);display:flex;flex-direction:column;gap:2px}
+.find.gap{background:var(--warn-soft)}
+.find b{font-weight:600}
+.phase{font-family:var(--f-display);font-size:1.05rem;font-weight:600;margin-top:6px}
+.disclaim{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,20,18,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:760px){.scrim{align-items:center}}
+.sheet{background:var(--surface);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px max(18px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+@media (min-width:760px){.sheet{border-radius:18px}}
+.sheet header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.tog{display:flex;gap:8px;flex-wrap:wrap}
+.tog button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;min-height:38px;font-size:.88rem}
+.tog button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tog button[aria-pressed="true"]::before{content:"✓ "}
+.tog button:disabled{cursor:default;opacity:.8}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label,.field .lbl{font-size:.82rem;font-weight:600;color:var(--muted)}
+.gaps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.gaps li{font-size:.9rem;padding:8px 10px;border-radius:8px;background:var(--warn-soft)}
+.gaps li.good{background:var(--ok-soft)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;z-index:60;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand"><b>Family<span>OS</span></b><small>The Mehta family · Bengaluru · fictional demo</small></div>
+      <label class="viewas" for="viewer">Viewing as
+        <select id="viewer"></select>
+      </label>
+      <button class="sos" id="sosBtn" type="button">Something happened</button>
+    </div>
+    <nav class="tabs" aria-label="Sections"><ul id="tabs"></ul></nav>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+<div id="sheetRoot"></div>
+<div id="toastRoot" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const DAY = 864e5, NOW = new Date();
+const inDays = n => new Date(NOW.getTime() + n*DAY);
+const fmt = d => d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PEOPLE = {
+  arun:{name:'Arun', full:'Arun Mehta', rel:'You · keeps most of this in his head'},
+  meera:{name:'Meera', full:'Meera Mehta', rel:'Spouse'},
+  kavita:{name:'Kavita', full:'Kavita Shah', rel:"Arun's sister · executor of the will"},
+  raj:{name:'Raj', full:'Raj Mehta', rel:"Arun's cousin in Pune · helps with the parents"},
+  riya:{name:'Riya', full:'Riya Mehta', rel:'Daughter, 12'},
+  suresh:{name:'Dad', full:'Suresh Mehta', rel:"Arun's father, 72"},
+  lata:{name:'Mum', full:'Lata Mehta', rel:"Arun's mother, 68"}
+};
+const USERS = ['arun','meera','kavita','raj'];
+const CATS = {
+  identity:'Identity', money:'Money', insurance:'Insurance', property:'Property & valuables', legal:'Legal',
+  medical:'Medical', work:'Work & benefits', children:'Children', digital:'Digital life', bills:'Things that keep running'
+};
+
+// crit = critical item. w = priority for "top actions". for = whose life it concerns. em = emergency flows it matters to.
+const SEED = [
+ {id:'passA', t:"Arun's passport", cat:'identity', owner:'arun', for:['arun'], loc:'Bedroom cupboard, blue document folder', ref:'ending 4471', exp:79, ver:200, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:'meera', crit:true, w:3, em:['death','lost']},
+ {id:'aadhaarA', t:"Arun's Aadhaar & PAN", cat:'identity', owner:'arun', for:['arun'], loc:"DigiLocker on Arun's phone", ref:'PAN ending 21K', ver:120, knows:['arun','meera'], access:['arun'], resp:'arun', backup:null, crit:true, w:6, em:['medical','death','lost']},
+ {id:'riyaBC', t:"Riya's birth certificate", cat:'children', owner:'meera', for:['riya'], loc:'Bedroom cupboard, blue document folder', ver:300, knows:['arun','meera'], access:['arun','meera'], resp:'meera', backup:'arun', crit:false, em:['lost']},
+ {id:'marriage', t:'Marriage certificate', cat:'identity', owner:'arun', for:['arun','meera'], loc:'', ver:900, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:'meera', crit:false, em:['death','lost']},
+ {id:'passDad', t:"Dad's passport", cat:'identity', owner:'suresh', for:['suresh'], loc:"Parents' flat, steel almirah, top shelf", ref:'ending 0932', exp:43, ver:400, knows:['arun','raj'], access:['arun','raj'], resp:'arun', backup:'raj', crit:false, em:['medical','lost']},
+ {id:'hdfc', t:'HDFC joint savings account', cat:'money', owner:'arun', for:['arun','meera'], loc:'HDFC NetBanking · cheque book in study drawer', ref:'ending 6610', ver:60, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:'meera', crit:true, em:['death']},
+ {id:'demat', t:'Zerodha demat & trading account', cat:'money', owner:'arun', for:['arun'], loc:'Zerodha app (Arun only)', ref:'client ID ending 77', ver:30, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:true, w:5, em:['death']},
+ {id:'epf', t:"Arun's EPF", cat:'work', owner:'arun', for:['arun'], loc:'EPFO member portal', ref:'UAN ending 3390', ver:500, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:true, w:7, em:['death'], note:'Nominee: Meera.'},
+ {id:'ppf', t:"Meera's PPF", cat:'money', owner:'meera', for:['meera'], loc:'SBI Indiranagar · passbook in study drawer', ver:200, knows:['meera','arun'], access:['meera','arun'], resp:'meera', backup:'arun', crit:false, em:['death']},
+ {id:'loan', t:'Home loan (HDFC)', cat:'bills', owner:'arun', for:['arun','meera'], loc:'Loan agreement in SBI locker', ref:'EMI ₹62,000 auto-debit on the 5th', ver:90, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:null, crit:true, w:8, em:['death','medical']},
+ {id:'mf', t:'Mutual funds (via CAMS)', cat:'money', owner:'arun', for:['arun'], loc:'CAMS statement in Gmail', ver:400, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:true, w:9, em:['death']},
+ {id:'lic', t:'LIC term policy, ₹1 crore', cat:'insurance', owner:'arun', for:['arun'], loc:'Original bond in SBI locker', ref:'ending 8732', ver:150, knows:['arun','meera'], access:['arun','meera'], resp:'meera', backup:null, crit:true, w:4, em:['death'], note:'Nominee: Meera. Agent: Vikram Nair.'},
+ {id:'health', t:'Star Health family floater', cat:'insurance', owner:'arun', for:['arun','meera','riya'], loc:'Policy PDF in Gmail · card in wallet', ref:'ending 5521', exp:25, ver:330, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:'meera', crit:true, em:['medical']},
+ {id:'empIns', t:'Employer health & life insurance (Northwind Tech)', cat:'work', owner:'arun', for:['arun','meera','riya'], loc:'Northwind HR portal', ref:'Life cover 3× salary', ver:380, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:true, w:1, em:['medical','death']},
+ {id:'parentsHealth', t:"Parents' senior health insurance", cat:'insurance', owner:'suresh', for:['suresh','lata'], loc:"Parents' flat, steel almirah · copy in Arun's Gmail", ref:'ending 1187', ver:250, knows:['arun','raj'], access:['arun','raj'], resp:'arun', backup:'raj', crit:true, em:['medical']},
+ {id:'flat', t:'Flat in Whitefield', cat:'property', owner:'arun', for:['arun','meera'], loc:'Sale deed original in SBI locker', ver:700, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:'meera', crit:true, em:['death']},
+ {id:'locker', t:'SBI locker, Indiranagar', cat:'property', owner:'arun', for:['arun'], loc:'', ref:'Locker 214', ver:620, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:true, w:2, em:['death','lost'], note:'Holds: sale deed, LIC bond, loan agreement, gold.'},
+ {id:'gold', t:'Gold jewellery inventory', cat:'property', owner:'lata', for:['lata','meera'], loc:'SBI locker 214 · list in Meera\'s notes', ver:400, knows:['arun','meera'], access:['arun','meera'], resp:'meera', backup:'arun', crit:false, em:['death']},
+ {id:'will', t:"Arun's will", cat:'legal', owner:'arun', for:['arun'], loc:'Original with Adv. Sanjay Rao, MG Road', ref:'Registered 2023', ver:420, knows:['arun','kavita'], access:['arun','kavita'], resp:'kavita', backup:null, crit:true, w:4.5, em:['death'], note:'Executor: Kavita.'},
+ {id:'dadMeds', t:"Dad's medication & cardiologist", cat:'medical', owner:'suresh', for:['suresh'], loc:'Prescription file on fridge, parents\' flat', ver:100, knows:['arun','raj'], access:['arun','raj'], resp:null, backup:null, crit:true, w:1.5, em:['medical'], note:'Monthly refill from Apollo Pharmacy. Cardiologist: Dr. Prakash Rao.'},
+ {id:'allergy', t:"Meera's penicillin allergy", cat:'medical', owner:'meera', for:['meera'], loc:'Noted in Star Health card & family doctor file', ver:200, knows:['meera','arun'], access:['meera','arun'], resp:'meera', backup:'arun', crit:false, em:['medical']},
+ {id:'school', t:"Riya's school (Greenwood High)", cat:'children', owner:'meera', for:['riya'], loc:'School app · fee receipts in Meera\'s email', ref:'Fees ₹1.8 lakh/yr, due April', ver:90, knows:['meera','arun'], access:['meera','arun'], resp:'meera', backup:'arun', crit:true, em:['medical','death']},
+ {id:'gmail', t:"Arun's main Gmail", cat:'digital', owner:'arun', for:['arun'], loc:"Recovery codes: not recorded · recovery phone is Arun's", ver:700, knows:['arun'], access:['arun'], resp:null, backup:null, crit:true, w:3.5, em:['death'], after:'Archive', note:'Most statements and policies arrive here.'},
+ {id:'photos', t:'Google Photos family library', cat:'digital', owner:'arun', for:['arun','meera'], loc:"Arun's Google account", ver:300, knows:['arun','meera'], access:['arun','meera'], resp:'meera', backup:null, crit:false, em:['death'], after:'Keep'},
+ {id:'pwm', t:'Bitwarden password manager', cat:'digital', owner:'arun', for:['arun'], loc:'Emergency kit: not recorded', ver:200, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:true, w:3.2, em:['death'], after:'Transfer'},
+ {id:'insta', t:"Arun's Instagram", cat:'digital', owner:'arun', for:['arun'], loc:'Instagram app', ver:200, knows:['arun','meera'], access:['arun','meera'], resp:null, backup:null, crit:false, em:['death'], after:'Memorialise'},
+ {id:'staff', t:'Salary for Sunita (cook)', cat:'bills', owner:'meera', for:['meera'], loc:'₹12,000 by UPI on the 1st', ver:30, knows:['meera','arun'], access:['meera','arun'], resp:'meera', backup:'arun', crit:false, em:['medical','death']},
+ {id:'society', t:'Society maintenance', cat:'bills', owner:'arun', for:['arun'], loc:'MyGate app · ₹6,500 quarterly', ver:120, knows:['arun'], access:['arun'], resp:'arun', backup:null, crit:false, em:['death']},
+ {id:'parentsMoney', t:"Monthly transfer to parents", cat:'bills', owner:'arun', for:['suresh','lata'], loc:'₹25,000 standing instruction from HDFC', ver:60, knows:['arun','raj'], access:['arun'], resp:'arun', backup:null, crit:true, w:2.5, em:['medical','death']},
+ {id:'tax', t:'Income tax filing', cat:'bills', owner:'arun', for:['arun','meera'], loc:'CA Neha Kapoor files by July', ver:150, knows:['arun','meera'], access:['arun','meera'], resp:'arun', backup:'meera', crit:false, em:['death']}
+];
+const CONTACTS = [
+ {id:'ca', role:'CA', name:'Neha Kapoor', note:'Files tax for Arun & Meera', phone:'+91 90000 10001', knows:['arun','meera'], kw:['ca','chartered','accountant','tax']},
+ {id:'lawyer', role:'Lawyer', name:'Adv. Sanjay Rao', note:'Holds the original will', phone:'+91 90000 10002', knows:['arun','kavita'], kw:['lawyer','advocate','legal','will']},
+ {id:'famdoc', role:'Family doctor', name:'Dr. Anjali Menon', note:'Koramangala clinic', phone:'+91 90000 10003', knows:['arun','meera'], kw:['doctor','gp','family doctor'], for:['arun','meera','riya']},
+ {id:'cardio', role:"Dad's cardiologist", name:'Dr. Prakash Rao', note:'Manipal Hospital', phone:'+91 90000 10004', knows:['arun','raj'], kw:['doctor','cardiologist','heart'], for:['suresh']},
+ {id:'adviser', role:'Insurance adviser', name:'Vikram Nair', note:'LIC agent for the term policy', phone:'+91 90000 10005', knows:['arun'], kw:['adviser','advisor','agent','insurance','lic']},
+ {id:'hr', role:'Employer HR', name:'Northwind Tech HR', note:'Benefits desk', phone:'+91 90000 10006', knows:['arun'], kw:['hr','employer','benefits','northwind']}
+];
+
+let items, viewer = 'arun', tab = 'home', emg = null, emgFor = 'arun', done = {};
+const reset = () => { items = JSON.parse(JSON.stringify(SEED)); done = {}; };
+reset();
+
+// ---------- rules ----------
+const P = id => PEOPLE[id] ? PEOPLE[id].name : 'Nobody';
+const daysAgo = it => it.ver;
+const canSee = it => viewer==='arun' || it.owner===viewer || it.access.includes(viewer);
+const canEdit = it => viewer==='arun' || it.owner===viewer;
+const contactsSeen = () => CONTACTS.filter(c => viewer==='arun' || c.knows.includes(viewer));
+
+function gaps(it){
+  const g = [];
+  if (it.knows.length < 2) g.push({k:'unshared', s:'crit', txt:`Only ${P(it.knows[0])} knows this exists.`});
+  if (it.access.length < it.knows.length) {
+    const who = it.knows.filter(p => !it.access.includes(p)).map(P).join(', ');
+    g.push({k:'inaccessible', s:'warn', txt:`${who} knows about it but can't open it.`});
+  } else if (it.access.length < 2 && it.knows.length >= 2) g.push({k:'inaccessible', s:'warn', txt:`Only ${P(it.access[0])} can open it.`});
+  if (!it.resp) g.push({k:'unassigned', s:'crit', txt:'Nobody is responsible for handling this.'});
+  else if (!it.backup) g.push({k:'nobackup', s:'warn', txt:`If ${P(it.resp)} can't handle this, nobody is lined up.`});
+  if (!it.loc || /not recorded/i.test(it.loc)) g.push({k:'missing', s:'warn', txt:'Where would your family look for this? Not recorded yet.'});
+  if (it.exp != null && it.exp <= 90) g.push({k:'expiring', s:'warn', txt:`Expires in ${it.exp} days (${fmt(inDays(it.exp))}).`});
+  if (daysAgo(it) > 540) g.push({k:'stale', s:'warn', txt:`Not checked in ${Math.round(daysAgo(it)/30)} months.`});
+  return g;
+}
+function isSpof(it){ return it.crit && (it.knows.length<2 || it.access.length<2 || !it.resp || !it.backup); }
+function spofPerson(it){
+  if (it.knows.length<2) return it.knows[0];
+  if (it.access.length<2) return it.access[0];
+  return it.resp || it.owner;
+}
+function score(){
+  const crit = items.filter(i=>i.crit);
+  const frac = (arr,f) => arr.length ? arr.filter(f).length/arr.length : 0;
+  const covCats = Object.keys(CATS);
+  const cov = covCats.filter(c => items.some(i=>i.cat===c)).length / covCats.length;
+  const shared = frac(crit, i=>i.knows.length>=2);
+  const access = frac(crit, i=>i.access.length>=2);
+  const resp = crit.reduce((s,i)=>s+(i.resp?.5:0)+(i.backup?.5:0),0)/crit.length;
+  const fresh = frac(items, i=>daysAgo(i)<=540);
+  const will = items.find(i=>i.id==='will'), hi = items.find(i=>i.id==='health'), lk = items.find(i=>i.id==='locker');
+  const emp = [will && will.loc && will.knows.length>=2, hi && hi.knows.length>=2, lk && lk.loc && !/not recorded/i.test(lk.loc)].filter(Boolean).length/3;
+  const parts = {Coverage:[cov,25], 'Shared knowledge':[shared,20], Access:[access,20], Responsibility:[resp,20], Freshness:[fresh,10], 'Emergency prep':[emp,5]};
+  const total = Math.round(Object.values(parts).reduce((s,[v,w])=>s+v*w,0));
+  return {total, parts};
+}
+function suggestFor(it){
+  if (['suresh','lata'].includes(it.owner) || it.for.some(f=>['suresh','lata'].includes(f)) && it.cat!=='property') return 'raj';
+  if (it.cat==='legal') return 'meera';
+  return it.owner==='meera' ? 'arun' : 'meera';
+}
+function fixesFor(it){
+  const f = [], s = suggestFor(it);
+  if (it.knows.length<2 || it.access.length<2){
+    const who = it.knows.length>=2 ? (it.knows.find(p=>!it.access.includes(p)) || s) : s;
+    f.push({label:`Give ${P(who)} access to ${it.t}`, why:`Right now only ${P(spofPerson(it))} can find this.`, run(){ add(it.knows,who); add(it.access,who); toast(`${P(who)} can now see ${it.t}.`);} });
+  }
+  if (!it.resp){
+    f.push({label:`Ask ${P(s)} to handle ${it.t}`, why:'Nobody is responsible for this today.', run(){ it.resp=s; toast(`${P(s)} now handles ${it.t}.`);} });
+  } else if (!it.backup){
+    const b = it.resp===s ? (it.resp==='meera'?'kavita':'meera') : s;
+    f.push({label:`Make ${P(b)} the backup for ${it.t}`, why:`If ${P(it.resp)} can't do it, nobody steps in.`, run(){ it.backup=b; add(it.knows,b); add(it.access,b); toast(`${P(b)} is now the backup for ${it.t}.`);} });
+  }
+  if (!it.loc || /not recorded/i.test(it.loc)){
+    f.push({label:`Record where the ${it.id==='locker'?'locker key is kept':it.t+' is kept'}`, why:'Your family would not know where to look.', open:true, run(){ openSheet(it.id,true);} });
+  }
+  return f;
+}
+const add = (arr,v) => { if (v && !arr.includes(v)) arr.push(v); };
+
+// ---------- rendering ----------
+const main = document.getElementById('main');
+const TABS = [['home','Home'],['map','Everything we have'],['wkw','Who knows what'],['resp','If Arun can\'t'],['ask','Ask FamilyOS']];
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = TABS.map(([k,l])=>`<li><button type="button" data-tab="${k}" ${tab===k&&!emg?'aria-current="page"':''}>${l}</button></li>`).join('');
+}
+function renderViewer(){
+  document.getElementById('viewer').innerHTML = USERS.map(u=>`<option value="${u}" ${u===viewer?'selected':''}>${PEOPLE[u].name}${u==='arun'?' (owner)':''}</option>`).join('');
+}
+function pills(it){
+  const g = gaps(it); const out = [];
+  if (isSpof(it)) out.push(`<span class="pill crit">Depends on ${esc(P(spofPerson(it)))}</span>`);
+  else if (it.crit && !g.length) out.push('<span class="pill ok">Covered</span>');
+  if (g.some(x=>x.k==='expiring')) out.push(`<span class="pill warn">Expires in ${it.exp}d</span>`);
+  if (g.some(x=>x.k==='missing')) out.push('<span class="pill warn">Location missing</span>');
+  return out.join('');
+}
+function itemRow(it){
+  return `<li><button type="button" class="itemrow" data-item="${it.id}">
+    <span class="main"><span class="t">${esc(it.t)}</span><span class="small muted">${it.loc?esc(it.loc):'Location not recorded'}</span></span>
+    <span class="pills">${pills(it)}</span></button></li>`;
+}
+function ring(v){
+  const r=52, c=2*Math.PI*r, off=c*(1-v/100);
+  return `<div class="ring" role="img" aria-label="Family continuity ${v}% prepared"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--sunk)" stroke-width="12"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .6s ease"/></svg><div class="val"><b class="num">${v}%</b><small>prepared</small></div></div>`;
+}
+
+function renderHome(){
+  if (viewer!=='arun') return renderMemberHome();
+  const sc = score();
+  const spofs = items.filter(isSpof);
+  const onArun = spofs.filter(i=>spofPerson(i)==='arun').length;
+  const ranked = spofs.concat(items.filter(i=>!i.crit && gaps(i).some(g=>g.k==='unassigned'))).filter(i=>fixesFor(i).length).sort((a,b)=>(a.w||99)-(b.w||99));
+  const acts = ranked.slice(0,3).map(i=>({it:i, fx:fixesFor(i)[0]}));
+  const upcoming = items.filter(i=>i.exp!=null).map(i=>({t:`${i.t} ${i.cat==='insurance'?'renews':'expires'}`, d:i.exp, id:i.id}))
+    .concat([{t:'Annual family check-up', d:62}]).sort((a,b)=>a.d-b.d);
+  main.innerHTML = `
+  <p class="banner"><b>This is a made-up family.</b> Arun runs most of the household. Try the suggested fixes and watch the score change, switch "Viewing as" to see what Meera or Kavita sees, or tap <b>Something happened</b>.</p>
+  <section class="panel">
+    <div class="hero">${ring(sc.total)}
+      <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+        <span class="eyebrow">Family continuity</span>
+        <p class="spof"><em class="num">${onArun}</em> important ${onArun===1?'thing still depends':'things still depend'} entirely on Arun.</p>
+        <p class="muted small">${spofs.length} single points of failure across the household. A rough guide, not a precise measure.</p>
+      </div>
+    </div>
+    <div class="breakdown">${Object.entries(sc.parts).map(([k,[v,w]])=>`<div class="meter"><span class="row" style="justify-content:space-between"><span>${k}</span><span class="muted num">${Math.round(v*100)}%</span></span><span class="track"><span class="fill" style="width:${Math.round(v*100)}%"></span></span></div>`).join('')}</div>
+  </section>
+  <div class="grid2">
+    <section class="panel">
+      <h2>Do these next</h2>
+      ${acts.length ? `<ol class="actions">${acts.map((a,n)=>`<li class="action"><span class="n">${n+1}</span><div class="body"><b>${esc(a.fx.label)}</b><span class="small muted">${esc(a.fx.why)}</span><div class="row"><button type="button" class="btn primary" data-fix="${a.it.id}">${a.fx.open?'Add it':'Do it'}</button><button type="button" class="btn ghost" data-item="${a.it.id}">Details</button></div></div></li>`).join('')}</ol>` : '<p>Nothing urgent. Nice work.</p>'}
+    </section>
+    <section class="panel">
+      <h2>Coming up</h2>
+      <ul class="list">${upcoming.map(u=>`<li><div class="itemrow" style="cursor:default"><span class="main"><span class="t">${esc(u.t)}</span><span class="small muted">${fmt(inDays(u.d))}</span></span><span class="pills"><span class="pill ${u.d<=45?'warn':''} num">in ${u.d} days</span></span></div></li>`).join('')}</ul>
+      <div class="row"><button type="button" class="btn" data-goto="ask">Ask FamilyOS</button><button type="button" class="btn" data-goto="wkw">Who knows what?</button><button type="button" class="btn ghost" id="resetBtn">Reset demo</button></div>
+    </section>
+  </div>`;
+}
+function renderMemberHome(){
+  const mine = items.filter(canSee);
+  const resp = items.filter(i=>i.resp===viewer && canSee(i));
+  const backup = items.filter(i=>i.backup===viewer && canSee(i));
+  main.innerHTML = `
+  <p class="banner"><b>You're viewing as ${esc(PEOPLE[viewer].full)}</b> (${esc(PEOPLE[viewer].rel)}). You only see what Arun has shared with you. Search and emergency steps follow the same rule.</p>
+  <section class="panel"><span class="eyebrow">Shared with you</span><p class="spof"><span class="num">${mine.length}</span> of the family's important things have been shared with you.</p></section>
+  <div class="grid2">
+    <section class="panel"><h2>You handle</h2>${resp.length?`<ul class="list">${resp.map(itemRow).join('')}</ul>`:'<p class="muted">Nothing assigned to you yet.</p>'}</section>
+    <section class="panel"><h2>You're the backup for</h2>${backup.length?`<ul class="list">${backup.map(itemRow).join('')}</ul>`:'<p class="muted">You are not anyone\'s backup yet.</p>'}</section>
+  </div>
+  <section class="panel"><h2>Everything shared with you</h2><ul class="list">${mine.map(itemRow).join('')}</ul></section>`;
+}
+function renderMap(){
+  const seen = items.filter(canSee);
+  main.innerHTML = `<div class="row" style="justify-content:space-between"><h2>Everything we have</h2><span class="muted small">${seen.length} things${viewer!=='arun'?' shared with you':''}</span></div>
+  <div class="cats">${Object.entries(CATS).map(([k,l])=>{ const its = seen.filter(i=>i.cat===k); if(!its.length) return '';
+    const n = its.filter(isSpof).length;
+    return `<section class="panel"><div class="row" style="justify-content:space-between"><h3>${l}</h3>${n?`<span class="pill crit">${n} depend on one person</span>`:''}</div><ul class="list">${its.map(itemRow).join('')}</ul></section>`;}).join('')}</div>`;
+}
+function renderWKW(){
+  const rows = items.filter(i=>i.crit && canSee(i));
+  const cols = USERS;
+  const only = rows.filter(i=>i.knows.length===1);
+  main.innerHTML = `<h2>Who knows what</h2>
+  <p class="muted">Important things only. ✓ means they know it exists; "can open" means they can reach it.</p>
+  ${only.length?`<ul class="callouts">${only.map(i=>`<li><strong>Only ${esc(P(i.knows[0]))}</strong> currently knows about ${esc(i.t)}.</li>`).join('')}</ul>`:''}
+  <div class="tablewrap"><table><thead><tr><th scope="col">Item</th>${cols.map(c=>`<th scope="col">${P(c)}</th>`).join('')}</tr></thead><tbody>
+  ${rows.map(i=>`<tr><th scope="row" style="text-align:left;font-weight:500"><button type="button" class="btn ghost" style="border:0;padding:4px 0;text-align:left;min-height:0" data-item="${i.id}">${esc(i.t)}</button></th>${cols.map(c=>{const k=i.knows.includes(c),a=i.access.includes(c);return `<td><span class="cell ${k?'':'none'}"><b aria-hidden="true">${k?'✓':'·'}</b>${k?(a?'can open':'knows only'):'<span class="sr">doesn\'t know</span>'}</span></td>`;}).join('')}</tr>`).join('')}
+  </tbody></table></div>`;
+}
+function renderResp(){
+  const its = items.filter(i=>(i.resp==='arun'||!i.resp) && canSee(i)).sort((a,b)=>(a.backup?1:0)-(b.backup?1:0));
+  main.innerHTML = `<h2>If Arun can't do this, who will?</h2>
+  <p class="muted">Seeing a document isn't the same as handling it. Somebody still needs to make the call.</p>
+  <section class="panel"><ul class="list">${its.map(i=>{
+    const who = i.resp && i.resp!=='arun' ? i.resp : i.backup;
+    const editable = canEdit(i);
+    return `<li><div class="itemrow" style="cursor:default;flex-wrap:wrap"><span class="main"><span class="t">${esc(i.t)}</span><span class="small muted">${i.resp?'Arun handles this today':'Nobody handles this today'}</span></span>
+    <span class="row">${who?`<span class="pill ok">${esc(P(who))}</span>`:'<span class="pill crit">Nobody assigned</span>'}
+    ${editable?`<label class="sr" for="as-${i.id}">Backup for ${esc(i.t)}</label><select id="as-${i.id}" data-assign="${i.id}"><option value="">Choose…</option>${USERS.filter(u=>u!=='arun').map(u=>`<option value="${u}" ${who===u?'selected':''}>${P(u)}</option>`).join('')}</select>`:''}</span></div></li>`;}).join('')}</ul></section>`;
+}
+
+// ---------- ask ----------
+const SYN = {dad:['suresh','dad','father','parents'], mum:['lata','mum','mom','mother','parents'], insurance:['insurance','policy','cover','health','lic'], papers:['deed','documents','papers','property','flat'], jewellery:['gold','jewellery','jewelry','locker'], riya:['riya','school','birth','daughter'], bank:['bank','hdfc','savings','account','money','demat','mutual','ppf','epf']};
+function ask(q){
+  const ql = q.toLowerCase().trim(); if(!ql) return '';
+  const seen = items.filter(canSee);   // permission filter happens FIRST
+  let html = '';
+  const dep = ql.match(/depend.*on\s+(\w+)/);
+  if (dep){
+    const name = dep[1]; const pid = Object.keys(PEOPLE).find(k=>PEOPLE[k].name.toLowerCase()===name || k===name) || (name==='me'?'arun':null);
+    const list = seen.filter(i=>isSpof(i) && spofPerson(i)===pid);
+    return `<div class="answer"><b>${list.length} important ${list.length===1?'thing depends':'things depend'} entirely on ${esc(P(pid))}${viewer!=='arun'?' (among what\'s shared with you)':''}.</b>${list.length?`<ul class="list">${list.map(itemRow).join('')}</ul>`:''}</div>`;
+  }
+  const contacts = contactsSeen().filter(c=>c.kw.some(k=>new RegExp('\\b'+k+'\\b').test(ql)));
+  if (/^who('s| is)? (our|the|dad|mum)/.test(ql) && contacts.length){
+    return contacts.map(c=>`<div class="answer"><span class="eyebrow">${esc(c.role)}</span><b>${esc(c.name)}</b><dl class="facts"><dt>Phone</dt><dd class="num" style="user-select:all">${esc(c.phone)}</dd><dt>Note</dt><dd>${esc(c.note)}</dd><dt>Who knows</dt><dd>${c.knows.map(P).join(', ')}</dd></dl></div>`).join('');
+  }
+  let terms = ql.replace(/[^a-z0-9' ]/g,' ').split(/\s+/).filter(w=>w.length>2 && !['where','what','which','who','the','our','are','has','have','about','knows','does','is','show','me','find'].includes(w));
+  terms = terms.filter(w=>!['documents','document','papers','information','info','details','stuff','things'].includes(w) || !/(riya|dad|mum|arun|meera)/.test(ql));
+  const typed = new Set(terms.map(w=>w.replace(/'s$/,'')));
+  terms = terms.flatMap(w=>{ for (const [k,v] of Object.entries(SYN)) if (k===w || v.includes(w)) return v.concat(w); return [w.replace(/'s$/,'')]; });
+  const names = new Set(Object.values(PEOPLE).flatMap(p=>[p.name.toLowerCase(), ...p.full.toLowerCase().split(' ')]).concat(['suresh','lata','dad','mum','parents','father','mother','mom','daughter']));
+  const topical = terms.filter(t=>!names.has(t));
+  const WHO = {arun:'arun', meera:'meera', riya:'riya', dad:'suresh', father:'suresh', suresh:'suresh', mum:'lata', mom:'lata', mother:'lata', lata:'lata', kavita:'kavita', raj:'raj'};
+  const named = [...new Set(ql.split(/[^a-z]+/).map(w=>WHO[w.replace(/s$/,'')]||WHO[w]).filter(Boolean))];
+  let scored =seen.map(i=>{ const hay = (i.t+' '+CATS[i.cat]+' '+(i.note||'')+' '+(i.ref||'')+' '+i.for.map(f=>PEOPLE[f].full+' '+PEOPLE[f].name).join(' ')).toLowerCase();
+    const hit = t => hay.includes(t)?1:0;
+    if (topical.length ? !topical.some(hit) : !named.length) return {i, s:0};   // a person's name alone isn't a match unless that's all they asked
+    const about = named.length && named.some(n=>i.for.includes(n)) ? 3 : 0;
+    return {i, s:[...new Set(topical)].reduce((s,t)=>s+hit(t)*(typed.has(t)?2:1),0) + about}; }).filter(x=>x.s>0).sort((a,b)=>b.s-a.s);
+  if (named.length && scored.some(x=>named.some(n=>x.i.for.includes(n)))) scored = scored.filter(x=>named.some(n=>x.i.for.includes(n)));
+  scored = scored.slice(0,3);
+  if (!scored.length && !contacts.length) return `<div class="answer"><b>I couldn't find that${viewer!=='arun'?' in what has been shared with you':''}.</b><span class="muted small">Try "health insurance", "locker" or "who is our CA".</span></div>`;
+  html += scored.map(({i})=>`<div class="answer"><span class="eyebrow">${CATS[i.cat]}</span><b>${esc(i.t)}</b><dl class="facts">
+    <dt>Where</dt><dd>${i.loc?esc(i.loc):'<span style="color:var(--warn)">Not recorded</span>'}</dd>
+    ${i.ref?`<dt>Reference</dt><dd>${esc(i.ref)}</dd>`:''}
+    <dt>Belongs to</dt><dd>${esc(PEOPLE[i.owner].full)}</dd>
+    <dt>Who knows</dt><dd>${i.knows.map(P).join(', ')}</dd>
+    <dt>Can open</dt><dd>${i.access.map(P).join(', ')}</dd>
+    <dt>Handles it</dt><dd>${i.resp?P(i.resp):'Nobody assigned'}${i.backup?` · backup ${P(i.backup)}`:''}</dd>
+    ${i.note?`<dt>Notes</dt><dd>${esc(i.note)}</dd>`:''}</dl></div>`).join('');
+  html += contacts.slice(0,2).map(c=>`<div class="answer"><span class="eyebrow">${esc(c.role)}</span><b>${esc(c.name)}</b><span class="small num">${esc(c.phone)} · ${esc(c.note)}</span></div>`).join('');
+  return html;
+}
+let lastQ = '';
+function renderAsk(){
+  const sugg = ["Where is Dad's health insurance?","Who is our CA?","Which locker has the jewellery?","Who knows about Arun's employer insurance?","Where are Riya's documents?","What depends entirely on Arun?","Show me Arun's bank information"];
+  main.innerHTML = `<h2>What are you looking for?</h2>
+  ${viewer!=='arun'?`<p class="banner">Viewing as <b>${esc(PEOPLE[viewer].name)}</b>. Results only include what's been shared with you, so search can't be used to get around sharing.</p>`:''}
+  <form class="ask" id="askForm"><label class="sr" for="q">Ask FamilyOS</label><input id="q" type="text" placeholder="e.g. where are the property papers?" value="${esc(lastQ)}" autocomplete="off"><button class="btn primary" type="submit">Find</button></form>
+  <div class="chips">${sugg.map(s=>`<button type="button" class="chip" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+  <div id="answers" style="display:flex;flex-direction:column;gap:12px">${ask(lastQ)}</div>
+  <p class="muted small">This demo matches keywords. The real product would use AI only after filtering by permission, and core answers would still work without AI.</p>`;
+}
+
+// ---------- emergency ----------
+const SCEN = [
+  {k:'medical', t:'Medical emergency', d:'Hospital, accident or sudden illness'},
+  {k:'death', t:'Death in the family', d:'Calm steps for today, this week and later'},
+  {k:'lost', t:'Lost documents', d:'Find originals and copies fast'},
+  {k:'unreach', t:'Someone can\'t be reached', d:'Coming later', soon:true},
+  {k:'disaster', t:'Fire, flood or disaster', d:'Coming later', soon:true}
+];
+function finds(list, emptyTxt){
+  const seen = list.filter(canSee);
+  if (!seen.length) return `<div class="find gap"><b>${emptyTxt||'Nothing recorded or shared with you for this yet.'}</b></div>`;
+  return seen.map(i=>{ const g = gaps(i).filter(x=>['missing','unassigned','unshared'].includes(x.k));
+    return `<div class="find ${!i.loc||/not recorded/i.test(i.loc)?'gap':''}"><b>${esc(i.t)}</b><span>${i.loc?esc(i.loc):'Location not recorded'}${i.ref?' · '+esc(i.ref):''}</span>${i.note?`<span class="muted">${esc(i.note)}</span>`:''}${g.length&&viewer==='arun'?`<span style="color:var(--warn)">${esc(g[0].txt)}</span>`:''}</div>`; }).join('');
+}
+function contactFinds(ids){
+  const cs = contactsSeen().filter(c=>ids.includes(c.id));
+  if (!cs.length) return `<div class="find gap"><b>No contact shared with you for this.</b></div>`;
+  return cs.map(c=>`<div class="find"><b>${esc(c.role)}: ${esc(c.name)}</b><span class="num" style="user-select:all">${esc(c.phone)}</span><span class="muted">${esc(c.note)}</span></div>`).join('');
+}
+const by = f => items.filter(f);
+function stepsFor(k, who){
+  const forWho = i => i.for.includes(who);
+  const others = who==='arun' ? 'Meera, Kavita' : (who==='suresh' ? 'Arun, Raj, Mum' : 'Arun');
+  if (k==='medical') return [{steps:[
+    {t:'Find health insurance', h:finds(by(i=>i.cat==='insurance' && forWho(i)||i.id==='empIns'&&forWho(i)))},
+    {t:'Get identification', h:finds(by(i=>i.cat==='identity' && forWho(i)))},
+    {t:'Check medication and allergy information', h:finds(by(i=>i.cat==='medical' && (forWho(i)||who==='arun'&&i.for.includes('meera'))), 'No medication or allergy notes recorded for '+P(who)+'.')},
+    {t:'Call the doctor or emergency contact', h:contactFinds(who==='suresh'?['cardio']:['famdoc'])},
+    {t:'Tell the family', h:`<div class="find"><b>Call ${esc(others)}</b><span class="muted">One person calls; everyone else waits for updates.</span></div>`},
+    ...(who==='arun'?[{t:'Check employer medical cover', h:finds(by(i=>i.id==='empIns'))+contactFinds(['hr'])}]:[]),
+    {t:'Reassign urgent responsibilities', h:finds(by(i=>i.cat==='bills' && (i.resp===who || who==='suresh' && i.for.includes('suresh'))), 'No regular responsibilities recorded for '+P(who)+'.')}
+  ]}];
+  if (k==='death') return [
+    {phase:'Today', steps:[
+      {t:'Tell closest family', h:`<div class="find"><b>${esc(others)}</b><span class="muted">Ask one person to coordinate calls.</span></div>`},
+      {t:'Find identity documents', h:finds(by(i=>i.cat==='identity' && forWho(i)))},
+      {t:'Find the will and the executor', h:finds(by(i=>i.cat==='legal' && forWho(i)), 'No will recorded or shared with you.')+contactFinds(['lawyer'])},
+      {t:'Inform the employer', h:finds(by(i=>i.cat==='work' && forWho(i)))+contactFinds(['hr'])},
+      {t:'Secure the phone, email and devices', h:finds(by(i=>i.cat==='digital' && ['gmail','pwm'].includes(i.id) && forWho(i)))}
+    ]},
+    {phase:'This week', steps:[
+      {t:'Find life insurance', h:finds(by(i=>['lic','empIns'].includes(i.id) && forWho(i)))+contactFinds(['adviser'])},
+      {t:'Speak to the CA and the lawyer', h:contactFinds(['ca','lawyer'])},
+      {t:'Keep immediate bills running', h:finds(by(i=>i.cat==='bills'))},
+      {t:'List bank and investment relationships', h:finds(by(i=>i.cat==='money' && forWho(i) || i.id==='epf'&&forWho(i)))}
+    ]},
+    {phase:'Later', steps:[
+      {t:'Property and the locker', h:finds(by(i=>i.cat==='property'))},
+      {t:'Digital accounts and social media', h:by(i=>i.cat==='digital' && i.after && canSee(i)).map(i=>`<div class="find"><b>${esc(i.t)}</b><span>Wish: ${esc(i.after)} · handled by ${i.resp?esc(P(i.resp)):'nobody yet'}</span></div>`).join('') || '<div class="find gap"><b>Nothing shared with you.</b></div>'},
+    ]}
+  ];
+  return [];
+}
+function renderLost(){
+  const docs = items.filter(i=>i.em.includes('lost') && canSee(i));
+  const sel = done.__lost || (docs[0] && docs[0].id);
+  const it = items.find(i=>i.id===sel);
+  const how = {passA:'Report it on the Passport Seva portal and apply for a reissue. If stolen, file a police complaint first.', passDad:'Report it on the Passport Seva portal and apply for a reissue. If stolen, file a police complaint first.', aadhaarA:'Download a fresh e-Aadhaar from UIDAI. For PAN, request a reprint through the Income Tax portal.', riyaBC:'Request a copy from the municipal office that issued it (BBMP for Bengaluru).', marriage:'Request a certified copy from the Sub-Registrar office where it was registered.', locker:'Contact the SBI branch immediately to report the lost key.'};
+  return `<div class="field"><label for="lostSel">Which document?</label><select id="lostSel">${docs.map(d=>`<option value="${d.id}" ${d.id===sel?'selected':''}>${esc(d.t)}</option>`).join('')}</select></div>
+  ${it?`<ol class="steps">
+    <li class="step"><span class="chk">1</span><div class="body"><span class="t">Check where the original should be</span>${finds([it])}</div></li>
+    <li class="step"><span class="chk">2</span><div class="body"><span class="t">Ask the people who know it</span><div class="find"><b>${it.knows.map(P).join(', ')}</b></div></div></li>
+    <li class="step"><span class="chk">3</span><div class="body"><span class="t">If it's really gone</span><div class="find"><span>${esc(how[it.id]||'Contact the issuing authority for a replacement.')}</span></div></div></li>
+  </ol>`:'<p class="muted">No documents shared with you.</p>'}`;
+}
+function renderEmergency(){
+  const s = SCEN.find(x=>x.k===emg.k);
+  let body = '';
+  if (!emg.k) body = '';
+  else if (emg.k==='lost') body = renderLost();
+  else {
+    const phases = stepsFor(emg.k, emgFor);
+    let n = 0;
+    body = `${emg.k==='medical'?`<div class="field"><label for="emgFor">Who is this about?</label><select id="emgFor">${['arun','meera','suresh'].map(p=>`<option value="${p}" ${p===emgFor?'selected':''}>${esc(PEOPLE[p].full)}</option>`).join('')}</select></div>`:''}
+    ${phases.map(ph=>`${ph.phase?`<p class="phase">${ph.phase}</p>`:''}<ol class="steps">${ph.steps.map(st=>{n++; const key=emg.k+emgFor+n; const d=!!done[key];
+      return `<li class="step ${d?'done':''}"><button type="button" class="chk" data-done="${key}" aria-pressed="${d}" aria-label="Mark '${esc(st.t)}' done">${d?'✓':n}</button><div class="body"><span class="t">${esc(st.t)}</span>${st.h}</div></li>`;}).join('')}</ol>`).join('')}`;
+  }
+  main.innerHTML = `<section class="emg">
+    <div class="row" style="justify-content:space-between"><h2>${s?esc(s.t):'What happened?'}</h2><button type="button" class="btn" id="exitEmg">Back to normal view</button></div>
+    ${!s?`<p class="muted">Pick what's closest. FamilyOS shows only what matters right now.</p>`:`<p class="muted">${emg.k==='death'?'Take this one step at a time. Nothing here has to be done alone.':'Do these first. Tick them off as you go.'}</p>`}
+    <div class="scen">${SCEN.map(x=>`<button type="button" data-scen="${x.k}" aria-pressed="${emg.k===x.k}" ${x.soon?'class="soon" disabled':''}><b>${esc(x.t)}</b><span class="small muted">${esc(x.d)}</span></button>`).join('')}</div>
+    ${body}
+    <p class="disclaim">This is a checklist, not legal or medical advice. In a medical emergency in India, call 112 or 108 first.${emg.k==='death'?' Your lawyer and CA can confirm what applies to your family.':''}</p>
+  </section>`;
+}
+
+// ---------- sheet ----------
+function openSheet(id, focusLoc){
+  const it = items.find(i=>i.id===id); if(!it || !canSee(it)) return;
+  const ed = canEdit(it), g = gaps(it);
+  const tog = (field) => USERS.map(u=>`<button type="button" data-tog="${field}" data-u="${u}" aria-pressed="${it[field].includes(u)}" ${ed?'':'disabled'}>${P(u)}</button>`).join('');
+  const sel = (field) => `<select id="sel-${field}" data-sel="${field}" ${ed?'':'disabled'}><option value="">Nobody</option>${USERS.map(u=>`<option value="${u}" ${it[field]===u?'selected':''}>${P(u)}</option>`).join('')}</select>`;
+  document.getElementById('sheetRoot').innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+    <header><div><span class="eyebrow">${CATS[it.cat]}</span><h2 id="sheetT">${esc(it.t)}</h2><p class="small muted">Belongs to ${esc(PEOPLE[it.owner].full)}${it.ref?' · '+esc(it.ref):''}${it.exp!=null?' · expires '+fmt(inDays(it.exp)):''} · last checked ${Math.round(it.ver/30)} months ago</p></div><button type="button" class="btn" id="closeSheet">Close</button></header>
+    <ul class="gaps">${g.length?g.map(x=>`<li>${esc(x.txt)}</li>`).join(''):'<li class="good">Covered. Someone else can step in on this.</li>'}</ul>
+    <div class="field"><label for="locIn">Where would your family look for this?</label><div class="row"><input id="locIn" type="text" style="flex:1;min-width:0" value="${esc(it.loc)}" placeholder="e.g. Locker key is in the brass box, top drawer" ${ed?'':'disabled'}>${ed?'<button type="button" class="btn primary" id="saveLoc">Save</button>':''}</div></div>
+    <div class="field"><span class="lbl">Who knows this exists?</span><div class="tog">${tog('knows')}</div></div>
+    <div class="field"><span class="lbl">Who can open it in FamilyOS?</span><div class="tog">${tog('access')}</div></div>
+    <div class="row" style="gap:16px"><div class="field"><label for="sel-resp">Who handles it?</label>${sel('resp')}</div><div class="field"><label for="sel-backup">Backup if they can't</label>${sel('backup')}</div></div>
+    ${it.after?`<p class="small"><b>Wish for this account after death:</b> ${esc(it.after)}</p>`:''}
+    ${it.note?`<p class="small muted">${esc(it.note)}</p>`:''}
+    ${ed?'':'<p class="small muted">Only Arun can change this.</p>'}
+  </div></div>`;
+  const s = document.getElementById('sheetRoot');
+  s.querySelector('#closeSheet').focus();
+  if (focusLoc) { const l = s.querySelector('#locIn'); l.focus(); l.select(); }
+  s.onclick = e => {
+    if (e.target.id==='scrim' || e.target.id==='closeSheet') return closeSheet();
+    const t = e.target.closest('[data-tog]');
+    if (t && ed){ const f=t.dataset.tog, u=t.dataset.u, arr=it[f];
+      if (arr.includes(u)) { if (u===it.owner) return toast(`${P(u)} owns this, so they always know about it.`); arr.splice(arr.indexOf(u),1); if(f==='knows'){ const a=it.access.indexOf(u); if(a>-1) it.access.splice(a,1);} }
+      else { arr.push(u); if (f==='access') add(it.knows,u); }
+      refresh(); openSheet(id); }
+    if (e.target.id==='saveLoc'){ it.loc = s.querySelector('#locIn').value.trim(); it.ver = 0; refresh(); openSheet(id); toast('Saved. Your family will know where to look.'); }
+  };
+  s.onchange = e => { const f = e.target.dataset.sel; if (f && ed){ it[f] = e.target.value || null; if (it[f]) { add(it.knows,it[f]); add(it.access,it[f]); } refresh(); openSheet(id); } };
+}
+function closeSheet(){ document.getElementById('sheetRoot').innerHTML=''; }
+let tt;
+function toast(m){ const r=document.getElementById('toastRoot'); r.innerHTML=`<div class="toast">${esc(m)}</div>`; clearTimeout(tt); tt=setTimeout(()=>r.innerHTML='',2600); }
+
+// ---------- wiring ----------
+function refresh(){
+  renderTabs();
+  if (emg) return renderEmergency();
+  ({home:renderHome, map:renderMap, wkw:renderWKW, resp:renderResp, ask:renderAsk})[tab]();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tab){ tab=b.dataset.tab; emg=null; refresh(); window.scrollTo(0,0); }
+  else if (b.dataset.goto){ tab=b.dataset.goto; refresh(); }
+  else if (b.dataset.item){ openSheet(b.dataset.item); }
+  else if (b.dataset.fix){ const it=items.find(i=>i.id===b.dataset.fix); const f=fixesFor(it)[0]; if(f){ f.run(); if(!f.open) refresh(); } }
+  else if (b.dataset.q){ lastQ=b.dataset.q; renderAsk(); }
+  else if (b.dataset.scen){ emg={k:b.dataset.scen}; if(emg.k==='death') emgFor='arun'; refresh(); }
+  else if (b.dataset.done){ done[b.dataset.done]=!done[b.dataset.done]; refresh(); }
+  else if (b.id==='sosBtn'){ emg={k:null}; refresh(); window.scrollTo(0,0); }
+  else if (b.id==='exitEmg'){ emg=null; refresh(); }
+  else if (b.id==='resetBtn'){ reset(); refresh(); toast('Demo reset to the original family.'); }
+});
+document.addEventListener('submit', e => { if (e.target.id==='askForm'){ e.preventDefault(); lastQ=document.getElementById('q').value; document.getElementById('answers').innerHTML=ask(lastQ); } });
+document.addEventListener('change', e => {
+  if (e.target.id==='viewer'){ viewer=e.target.value; closeSheet(); refresh(); toast(`Now viewing as ${PEOPLE[viewer].name}.`); }
+  else if (e.target.id==='emgFor'){ emgFor=e.target.value; refresh(); }
+  else if (e.target.id==='lostSel'){ done.__lost=e.target.value; refresh(); }
+  else if (e.target.dataset.assign){ const it=items.find(i=>i.id===e.target.dataset.assign); const u=e.target.value||null;
+    if (!it.resp) it.resp=u; else it.backup=u; if(u){add(it.knows,u);add(it.access,u);} refresh(); if(u) toast(`${P(u)} will step in for ${it.t}.`); }
+});
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeSheet(); });
+
+const st = document.createElement('style'); st.textContent='.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}'; document.head.appendChild(st);
+renderViewer(); refresh();
+})();
+</script>
