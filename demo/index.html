@@ -49,6 +49,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backgroun
 .brand small{color:var(--muted);font-size:.8rem}
 .viewas{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
 select,input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px}
+.back{color:var(--accent);font-weight:600;text-decoration:none;padding:8px 10px;border-radius:999px;background:var(--accent-soft);min-height:40px;display:inline-flex;align-items:center;white-space:nowrap}
 .sos{background:var(--sos);color:var(--sos-ink);border:0;border-radius:999px;padding:10px 16px;font-weight:600;min-height:44px}
 .tabs{overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
@@ -174,6 +175,7 @@ dl.facts dd{margin:0;min-width:0}
 <header class="top">
   <div class="wrap">
     <div class="bar">
+      <a class="back" href="https://familyos-peach.vercel.app/">← My FamilyOS</a>
       <div class="brand"><b>Family<span>OS</span></b><small>The Mehta family · Bengaluru · fictional demo</small></div>
       <label class="viewas" for="viewer">Viewing as
         <select id="viewer"></select>
