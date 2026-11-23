@@ -59,6 +59,7 @@ select,input[type=text]{font:inherit;color:var(--ink);background:var(--surface);
 main{padding-block:20px 80px;display:flex;flex-direction:column;gap:20px}
 .banner{background:var(--sunk);border-radius:var(--r);padding:12px 14px;font-size:.88rem;color:var(--muted)}
 .banner b{color:var(--ink)}
+.banner a.cta{color:var(--accent);font-weight:600;white-space:nowrap}
 
 /* panels */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -360,7 +361,7 @@ function renderHome(){
   const upcoming = items.filter(i=>i.exp!=null).map(i=>({t:`${i.t} ${i.cat==='insurance'?'renews':'expires'}`, d:i.exp, id:i.id}))
     .concat([{t:'Annual family check-up', d:62}]).sort((a,b)=>a.d-b.d);
   main.innerHTML = `
-  <p class="banner"><b>This is a made-up family.</b> Arun runs most of the household. Try the suggested fixes and watch the score change, switch "Viewing as" to see what Meera or Kavita sees, or tap <b>Something happened</b>.</p>
+  <p class="banner"><b>This is a made-up family.</b> Arun runs most of the household. Try the suggested fixes and watch the score change, switch "Viewing as" to see what Meera or Kavita sees, or tap <b>Something happened</b>. <a class="cta" href="https://familyos-peach.vercel.app/login">Try it with your own family →</a></p>
   <section class="panel">
     <div class="hero">${ring(sc.total)}
       <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
