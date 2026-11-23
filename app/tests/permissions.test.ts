@@ -24,7 +24,10 @@ beforeAll(async () => {
     create schema auth; create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('app.uid', true), '')::uuid $$;
     create role authenticated nologin;`);
-  await db.exec(readFileSync(new URL('../../supabase/migrations/0001_init.sql', import.meta.url), 'utf8'));
+  await db.exec('create role anon nologin;');
+  for (const f of ['0001_init.sql', '0002_household_setup.sql', '0003_private_helpers.sql']) {
+    await db.exec(readFileSync(new URL(`../../supabase/migrations/${f}`, import.meta.url), 'utf8'));
+  }
   await db.exec(`
     grant usage on schema public, auth to authenticated;
     grant all on all tables in schema public to authenticated;
