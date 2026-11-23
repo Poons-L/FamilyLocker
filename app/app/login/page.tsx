@@ -9,7 +9,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       <section className="panel">
         <h1>Sign in</h1>
         {sent ? (
-          <p className="ok">Check your email. We&apos;ve sent you a link to sign in. It works once and expires in an hour.</p>
+          <p className="ok">Check your email. We&apos;ve sent you a link to sign in. It works once and expires in an hour. It comes from noreply@mail.app.supabase.io, so check your spam or promotions folder if you don&apos;t see it.</p>
         ) : (
           <>
             <p className="muted">No password needed. We&apos;ll email you a sign-in link.</p>

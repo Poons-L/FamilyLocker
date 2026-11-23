@@ -18,7 +18,12 @@ export async function sendLoginLink(form: FormData) {
   const origin = h.get('origin') ?? `https://${h.get('host')}`;
   const supabase = await serverClient();
   const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${origin}/auth/callback` } });
-  if (error) redirect('/login?error=' + encodeURIComponent(error.message));
+  if (error) {
+    const friendly = error.status === 429 || /rate limit|after \d+ seconds/i.test(error.message)
+      ? "We've just sent you a link. Please check your inbox and spam folder, or wait a minute before asking for another."
+      : error.message;
+    redirect('/login?error=' + encodeURIComponent(friendly));
+  }
   redirect('/login?sent=1');
 }
 
