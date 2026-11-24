@@ -179,11 +179,22 @@ def postprocess(path, meta, order):
                 obj[NameObject("/Q")] = NumberObject(2)
                 aa = DictionaryObject()
                 dec = m.get("dec", 0)
-                aa[NameObject("/F")] = js(f'AFNumber_Format({dec},0,0,0,"",false);')
+                if is_money(name):
+                    aa[NameObject("/F")] = js(f'var s=(typeof CUR=="string")?CUR:(this.getField("cur")?String(this.getField("cur").value):"");if(s&&s!=="No symbol"&&s.length<=3&&!/[$€£¥]/.test(s))s=s+" ";if(s==="No symbol")s="";AFNumber_Format({dec},0,0,0,s,true);')
+                else:
+                    aa[NameObject("/F")] = js(f'AFNumber_Format({dec},0,0,0,"",false);')
                 aa[NameObject("/K")] = js(f'AFNumber_Keystroke({dec},0,0,0,"",false);')
                 if m.get("calc"):
                     aa[NameObject("/C")] = js(calc_js(m["calc"]))
                     obj[NameObject("/Ff")] = NumberObject(int(obj.get("/Ff", 0)) | 1)  # read-only
+                obj[NameObject("/AA")] = aa
+    # currency picker: re-format every number when it changes
+    for page in w.pages:
+        for a in page.get("/Annots", []) or []:
+            obj = a.get_object()
+            if obj.get("/T") == "cur":
+                aa = DictionaryObject()
+                aa[NameObject("/V")] = js('CUR=event.value;for(var i=0;i<this.numFields;i++){var n=this.getNthFieldName(i);if(n=="cur")continue;var f=this.getField(n);if(f&&f.type=="text"){var v=f.value;f.value=v;}}')
                 obj[NameObject("/AA")] = aa
     af = w._root_object["/AcroForm"]
     af[NameObject("/CO")] = ArrayObject([refs[n] for n in order if n in refs])
@@ -191,6 +202,13 @@ def postprocess(path, meta, order):
     w._root_object[NameObject("/PageMode")] = NameObject("/UseNone")
     with open(path, "wb") as f:
         w.write(f)
+
+NON_MONEY = ("og_", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
+def is_money(n):
+    if n.startswith("og_") and n.endswith("_2"): return False   # months away
+    if n.startswith("ac_") and n.endswith("_2"): return False   # rate %
+    if n.startswith("yr_") and n.endswith("_4"): return False   # no-spend days
+    return not any(k in n for k in NON_MONEY if k != "og_")
 
 def js(code):
     d = DictionaryObject(); d[NameObject("/S")] = NameObject("/JavaScript"); d[NameObject("/JS")] = TextStringObject(code)
@@ -238,7 +256,7 @@ def build(path, size):
         ("Plug spending leaks", "Shopping, takeaways, impulse buys. Set a target you can live with and watch the yearly saving add up."),
         ("Wake up idle money", "Cash earning almost nothing? Compare rates and give each pot of money a job."),
         ("Collect what you're owed", "Track every IOU. Use the ready-made reminder scripts so asking feels easy."),
-        ("Budget every month", "Plan, then track actuals. Tick your no-spend days. Your savings tracker fills in by itself."),
+        ("Budget every month", "Add your earnings, plan your spending, then track actuals. Your earnings and savings pages fill in by themselves."),
     ]
     y -= 10
     for i, (h, d) in enumerate(steps):
@@ -251,8 +269,16 @@ def build(path, size):
     P.box(M, y - 78, CW, 78, GOLD_SOFT)
     P.text(M + 14, y - 20, "Good to know", F_BOLD, 11, INK)
     yy = P.wrap(M + 14, y - 36, "Automatic totals work in the free Adobe Acrobat Reader and most desktop PDF apps. In some browsers and phone apps you can still type in every box, but totals may not update until you open the file in Acrobat Reader.", CW - 28, size=9.5, color=INK)
-    y -= 96
-    P.text(M, y, "Amounts work in any currency. Just use one consistently.", F_DISP_I, 11, MUTED)
+    y -= 100
+    P.box(M, y - 58, CW, 58, VAULT_SOFT)
+    P.text(M + 14, y - 22, "Choose your currency", F_BOLD, 11, INK)
+    P.text(M + 14, y - 38, "Pick from the list or type your own (e.g. S$, RM, Rs). Every amount updates.", F_BODY, 9.5, MUTED)
+    P.c.acroForm.choice(name="cur", tooltip="Currency symbol", value="$", options=["$", "€", "£", "¥", "No symbol", "A$", "S$", "NZ$", "HK$", "C$", "Rs", "INR", "RM", "Rp", "PHP", "THB", "AED", "SAR", "ZAR", "CHF", "KRW"],
+                        fieldFlags="combo edit", x=W - M - 130, y=y - 44, width=116, height=24, fontName="Helvetica", fontSize=12,
+                        borderColor=VAULT, fillColor=PAPER, textColor=INK, borderWidth=0.8, forceBorder=True)
+    P.meta["cur"] = {}
+    y -= 76
+    P.text(M, y, "Tip: save the file after every session so your numbers stay put.", F_DISP_I, 11, MUTED)
 
     # ---------------- 3. MY GOAL ----------------
     y = P.page(f"My {YEAR} savings goal", "Goal",
@@ -438,8 +464,40 @@ def build(path, size):
         if (i + 1) % 5 == 0:
             P.text(M + i * (bs + 6) + bs / 2, y - bs - 12, f"{(i+1)*5}%", F_MONO, 7.5, MUTED, "center")
 
+    # ---------------- EARNINGS ----------------
+    y = P.page(f"My earnings {YEAR}", "Income",
+               "Everything you earn, month by month. Actual figures fill in from the income box on each monthly page, so you only type them once.")
+    y -= 4
+    P.text(M, y, f"My earnings goal for {YEAR}", F_BODY, 9.5, MUTED); P.field("er_goal", M + 140, y - 5, 110, 17, num=True)
+    P.text(M + 270, y, "Earned so far", F_BODY, 9.5, MUTED); P.field("er_sofar", M + 340, y - 5, 110, 17, calc=SUM([f"m{k}in_tot_2" for k in range(12)]))
+    y -= 30
+    tw = (CW - 5 * 4) / 6
+    heads = ["Month", "Planned", "Earned", "Running total", "Saved", "% saved"]
+    for i, h in enumerate(heads):
+        P.text(M + i * (tw + 4) + (2 if i == 0 else tw - 3), y, h, F_BOLD, 7.5, MUTED, "left" if i == 0 else "right")
+    y -= 6
+    for m in range(12):
+        y -= 22
+        P.text(M + 2, y + 5, MONTHS[m], F_BODY, 10.5, INK)
+        x = M + tw + 4
+        P.field(f"er_pl_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_1")'); x += tw + 4
+        P.field(f"er_ac_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")'); x += tw + 4
+        P.field(f"er_run_{m}", x, y, tw, 18, calc="+".join(f'N("m{k}in_tot_2")' for k in range(m + 1))); x += tw + 4
+        P.field(f"er_sv_{m}", x, y, tw, 18, calc=f'N("m{m}_saved")'); x += tw + 4
+        P.field(f"er_rate_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")>0?N("m{m}_saved")/N("m{m}in_tot_2")*100:0')
+    y -= 24
+    P.text(M + 2, y + 5, "Total", F_BOLD, 10.5, INK)
+    P.field("er_tot_pl", M + (tw + 4), y, tw, 18, calc=SUM([f"er_pl_{k}" for k in range(12)]))
+    P.field("er_tot_ac", M + 2 * (tw + 4), y, tw, 18, calc=SUM([f"er_ac_{k}" for k in range(12)]))
+    P.field("er_tot_sv", M + 4 * (tw + 4), y, tw, 18, calc=SUM([f"er_sv_{k}" for k in range(12)]))
+    P.field("er_tot_rate", M + 5 * (tw + 4), y, tw, 18, calc='N("er_tot_ac")>0?N("er_tot_sv")/N("er_tot_ac")*100:0')
+    y -= 34
+    P.box(M, y - 62, CW, 62, GOLD_SOFT)
+    P.text(M + 14, y - 22, "Grow your earnings", F_BOLD, 10.5, INK)
+    P.wrap(M + 14, y - 38, "Saving has a floor; earning doesn't. Each quarter, pick one move: ask for a raise with evidence, take a paid side project, sell what you no longer use, or learn a skill that pays more.", CW - 28, size=9.5, color=INK)
+
     # ---------------- 10-21. MONTHLY PAGES ----------------
-    INC = ["Salary / main income", "Side income", "Other income", ""]
+    INC = ["Salary / main income", "Bonus or commission", "Side income / freelance", "Interest and dividends", "Rental income", "Other"]
     EXP = ["Rent or mortgage", "Utilities and phone", "Groceries", "Transport", "Insurance", "Debt repayments",
            "Subscriptions", "Eating out", "Shopping", "Health", "Personal care", "Entertainment", "Gifts", "Other"]
     for m in range(12):
@@ -450,7 +508,7 @@ def build(path, size):
         # income
         P.text(M, y, "INCOME", F_BOLD, 8, GOLD)
         yi = P.table(M, y - 10, [("Source", leftw - 2 * 72 - 8, "text"), ("Planned", 72, "num"), ("Actual", 72, "num")],
-                     4, f"{p}in", rh=18, defaults=INC, total={1, 2})
+                     6, f"{p}in", rh=18, defaults=INC, total={1, 2})
         # calendar on right
         cx = M + leftw + 20; cwid = CW - leftw - 20
         P.text(cx, y, "NO-SPEND DAYS", F_BOLD, 8, GOLD)
@@ -470,7 +528,7 @@ def build(path, size):
         yc = y - 22 - len(weeks) * ch - 14
         P.text(cx, yc, "No-spend days", F_BODY, 9, MUTED)
         P.field(f"{p}_nscount", cx + cwid - 44, yc - 5, 44, 16, calc="+".join(f'C("{d}")' for d in days))
-        y = min(yi, yc - 10)
+        y = min(yi, yc - 10) - 8
         # expenses
         P.text(M, y, "SPENDING", F_BOLD, 8, GOLD)
         ew = CW - 3 * 90 - 12
