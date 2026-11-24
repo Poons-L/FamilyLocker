@@ -25,7 +25,7 @@ hero: [2000,1600,`
 </div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:760px;right:70px;top:250px;transform:rotate(4deg)">
 <img class="pg" src="${img('f01.png')}" style="position:absolute;width:700px;right:430px;top:170px;transform:rotate(-5deg)">
-<div class="brand">DIGITLOCKA</div>`],
+<div class="brand">THE NICHELESS NICHE</div>`],
 inside: [2000,1600,`
 <div style="position:absolute;left:90px;top:80px"><div class="k" style="font-size:28px">What's inside</div>
 <div class="h" style="font-size:96px;margin-top:14px">23 pages, one calm money system</div></div>
@@ -33,7 +33,7 @@ inside: [2000,1600,`
 ${[['f03','Savings goal + milestones'],['f04','Net worth snapshot'],['f05','Subscription audit'],['f06','Spending leaks'],['f07','Idle money check'],
    ['f08','Owed to me + scripts'],['f09','Savings tracker'],['f10','Earnings tracker'],['f11','12 monthly budgets'],['f23','Year in review']]
   .map(([f,l])=>`<div><img class="pg" src="${img(f+'.png')}" style="width:100%"><div style="font-size:27px;font-weight:700;margin-top:14px;color:#1F4A4F">${l}</div></div>`).join('')}
-</div><div class="brand">DIGITLOCKA</div>`],
+</div><div class="brand">THE NICHELESS NICHE</div>`],
 subs: [2000,1600,`
 <div style="position:absolute;left:90px;top:150px;width:780px">
  <div class="k" style="font-size:28px">Subscription audit</div>
@@ -42,7 +42,7 @@ subs: [2000,1600,`
 </div>
 <img class="pg" src="${img('f05.png')}" style="position:absolute;width:900px;right:90px;top:90px">
 <div class="callout" style="left:560px;bottom:200px"><b>$1,373</b><span>a year back, in one evening</span></div>
-<div class="brand">DIGITLOCKA</div>`],
+<div class="brand">THE NICHELESS NICHE</div>`],
 monthly: [2000,1600,`
 <div style="position:absolute;left:90px;top:80px;width:1820px">
  <div class="k" style="font-size:28px">12 monthly budgets + earnings tracker</div>
@@ -50,7 +50,7 @@ monthly: [2000,1600,`
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:820px;left:90px;top:330px">
 <img class="pg" src="${img('f10.png')}" style="position:absolute;width:820px;right:90px;top:330px">
 <div class="callout" style="left:770px;top:1330px;max-width:460px"><b>Side income?</b><span>Tick it as untaxed and the planner sets tax aside for you</span></div>
-<div class="brand">DIGITLOCKA</div>`],
+<div class="brand">THE NICHELESS NICHE</div>`],
 owed: [2000,1600,`
 <div style="position:absolute;left:90px;top:150px;width:800px">
  <div class="k" style="font-size:28px">Owed to me</div>
@@ -58,7 +58,7 @@ owed: [2000,1600,`
  <p style="font-size:38px;line-height:1.4;margin-top:34px;color:#3c4a55">Log every IOU, tick when you've reminded and when you're paid. Three ready-made scripts, gentle, clear and firm, make asking easy.</p>
 </div>
 <img class="pg" src="${img('f08.png')}" style="position:absolute;width:900px;right:90px;top:90px">
-<div class="brand">DIGITLOCKA</div>`],
+<div class="brand">THE NICHELESS NICHE</div>`],
 how: [2000,1600,`
 <div style="position:absolute;left:90px;top:100px;right:90px">
  <div class="k" style="font-size:28px">How it works</div>
@@ -69,7 +69,7 @@ how: [2000,1600,`
  </div>
  <div style="margin-top:70px;background:#F8EBDA;border-radius:24px;padding:40px 48px;font-size:32px;line-height:1.45">
   <b>Good to know:</b> automatic totals need a PDF app that supports form calculations, such as Adobe Acrobat Reader. In some browsers you can type in every box, but totals won't update. Digital product, no physical item ships. Educational tool, not financial advice.</div>
-</div><div class="brand">DIGITLOCKA</div>`],
+</div><div class="brand">THE NICHELESS NICHE</div>`],
 cover_gumroad: [1280,720,`
 <div style="position:absolute;left:60px;top:90px;width:600px">
  <div class="k" style="font-size:18px">Editable PDF planner</div>
@@ -87,6 +87,28 @@ square: [1080,1080,`
 </div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:520px;right:60px;top:470px;transform:rotate(4deg)">
 <img class="pg" src="${img('f05.png')}" style="position:absolute;width:500px;left:80px;top:500px;transform:rotate(-4deg)">`],
+leak: [1080,1080,`
+<div style="position:absolute;inset:0;background:#1F4A4F"></div>
+<div style="position:absolute;left:70px;top:80px;width:520px">
+ <div class="k" style="font-size:22px;color:#F0B35E">Free tool · 10 minutes</div>
+ <div class="h" style="font-size:84px;color:#fff;margin-top:16px">The Subscription Leak Check</div>
+ <p style="font-size:30px;line-height:1.4;margin-top:26px;color:#D7E6E2">List every repeat charge. Tick what you didn't use. See what cancelling puts back in your pocket.</p>
+ <div style="margin-top:34px;display:inline-block;background:#F0B35E;color:#1a1206;font-weight:700;font-size:28px;border-radius:999px;padding:14px 28px">$1,255 a year back in the example</div>
+</div>
+<img class="pg" src="${img('fleak.png')}" style="position:absolute;width:470px;right:-30px;top:150px;transform:rotate(5deg)">
+<div style="position:absolute;left:70px;bottom:50px;font-weight:700;font-size:20px;letter-spacing:.12em;color:#A9C4BF">THE NICHELESS NICHE</div>`],
+bundle: [1080,1080,`
+<div style="position:absolute;left:70px;top:80px;width:940px">
+ <div class="k" style="font-size:22px">Bundle · Best deal</div>
+ <div class="h" style="font-size:96px;margin-top:16px">2027 Life Plan: <span style="color:#C9781A">Career + Money</span></div>
+ <p style="font-size:30px;line-height:1.4;margin-top:24px;color:#3c4a55;max-width:860px">Decide your next career move and fund it. Two fillable planners that work together.</p>
+</div>
+<div style="position:absolute;left:70px;top:560px;width:400px;height:430px;border-radius:14px;background:#1F4A4F;color:#fff;padding:40px 36px;transform:rotate(-4deg);box-shadow:0 30px 60px -20px rgba(16,40,44,.35)">
+ <div class="k" style="font-size:18px;color:#F0B35E">Planner 1</div>
+ <div class="h" style="font-size:56px;color:#fff;margin-top:14px">2027 Career Plan</div>
+ <p style="font-size:26px;line-height:1.4;margin-top:18px;color:#D7E6E2">Stay, fix or go. Decide with evidence, then move.</p></div>
+<img class="pg" src="${img('f01.png')}" style="position:absolute;width:380px;right:90px;top:470px;transform:rotate(4deg)">
+<div style="position:absolute;left:70px;bottom:40px;font-weight:700;font-size:20px;letter-spacing:.12em;color:#5B6872">THE NICHELESS NICHE</div>`],
 thumb: [600,600,`
 <div style="position:absolute;inset:0;background:#1F4A4F"></div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:300px;right:-40px;top:150px;transform:rotate(6deg)">

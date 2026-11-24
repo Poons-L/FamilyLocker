@@ -14,6 +14,9 @@ from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject, NumberObject, DictionaryObject, ArrayObject, TextStringObject, BooleanObject
 
 YEAR = 2027
+BRAND = "The Nicheless Niche"
+TAGLINE = "Honest tools for work, wellbeing and life"
+SHOP = "topmate.io/the_nicheless_niche"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---------- brand ----------
@@ -43,7 +46,8 @@ class Planner:
         self.M = 40  # margin
         self.c = canvas.Canvas(path, pagesize=size)
         self.c.setTitle(f"Financial Planner {YEAR}")
-        self.c.setAuthor("Digitlocka")
+        self.c.setAuthor(BRAND)
+        self.series = f"FINANCIAL PLANNER {YEAR}"
         self.c.setSubject("Fillable personal finance planner")
         self.meta = {}       # field name -> dict(num, dec, calc)
         self.order = []      # calculation order
@@ -91,7 +95,7 @@ class Planner:
         self.page_no += 1
         c, W, H, M = self.c, self.W, self.H, self.M
         c.setFillColor(VAULT); c.rect(0, H - 6, W, 6, stroke=0, fill=1)
-        self.text(M, H - M - 2, f"FINANCIAL PLANNER {YEAR}", F_BOLD, 7.5, GOLD)
+        self.text(M, H - M - 2, self.series, F_BOLD, 7.5, GOLD)
         self.text(W - M, H - M - 2, kicker.upper(), F_BOLD, 7.5, MUTED, "right")
         self.text(M, H - M - 32, title, F_DISP, 26, VAULT)
         y = H - M - 46
@@ -99,7 +103,7 @@ class Planner:
             y = self.wrap(M, y - 4, intro, W - 2 * M, size=10.5) - 4
         # footer
         c.setStrokeColor(LINE); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
-        self.text(M, 20, "Digitlocka", F_BOLD, 7.5, MUTED)
+        self.text(M, 20, f"{BRAND}  ·  {TAGLINE}", F_BOLD, 7.5, MUTED)
         self.text(W - M, 20, str(self.page_no), F_MONO, 7.5, MUTED, "right")
         return y
 
@@ -225,7 +229,8 @@ def build(path, size):
     P.page_no = 1
     c.setFillColor(VAULT); c.rect(0, 0, W, H, stroke=0, fill=1)
     c.setFillColor(GOLD); c.rect(M, H * 0.62, 46, 4, stroke=0, fill=1)
-    P.text(M, H * 0.62 + 20, "DIGITLOCKA", F_BOLD, 10, HexColor("#F0B35E"))
+    P.text(M, H * 0.62 + 20, BRAND.upper(), F_BOLD, 10, HexColor("#F0B35E"))
+    P.text(M, 60, TAGLINE, F_DISP_I, 11, HexColor("#A9C4BF"))
     P.text(M, H * 0.62 - 50, "Financial", F_DISP, 58, white)
     P.text(M, H * 0.62 - 110, "Planner", F_DISP, 58, white)
     P.text(M, H * 0.62 - 190, str(YEAR), F_MONO, 64, HexColor("#F0B35E"))
@@ -273,10 +278,7 @@ def build(path, size):
     P.box(M, y - 58, CW, 58, VAULT_SOFT)
     P.text(M + 14, y - 22, "Choose your currency", F_BOLD, 11, INK)
     P.text(M + 14, y - 38, "Pick from the list or type your own (e.g. S$, RM, Rs). Every amount updates.", F_BODY, 9.5, MUTED)
-    P.c.acroForm.choice(name="cur", tooltip="Currency symbol", value="$", options=["$", "€", "£", "¥", "No symbol", "A$", "S$", "NZ$", "HK$", "C$", "Rs", "INR", "RM", "Rp", "PHP", "THB", "AED", "SAR", "ZAR", "CHF", "KRW"],
-                        fieldFlags="combo edit", x=W - M - 130, y=y - 44, width=116, height=24, fontName="Helvetica", fontSize=12,
-                        borderColor=VAULT, fillColor=PAPER, textColor=INK, borderWidth=0.8, forceBorder=True)
-    P.meta["cur"] = {}
+    currency_picker(P, W - M - 116, y - 42)
     y -= 70
     P.box(M, y - 70, CW, 70, VAULT_SOFT)
     P.text(M + 14, y - 22, "Set aside for tax on side income", F_BOLD, 11, INK)
@@ -604,8 +606,65 @@ def build(path, size):
     P.save()
 
 
+def currency_picker(P, x, y):
+    P.c.acroForm.choice(name="cur", tooltip="Currency symbol", value="$", options=["$", "€", "£", "¥", "No symbol", "A$", "S$", "NZ$", "HK$", "C$", "Rs", "INR", "RM", "Rp", "PHP", "THB", "AED", "SAR", "ZAR", "CHF", "KRW"],
+                        fieldFlags="combo edit", x=x, y=y, width=96, height=20, fontName="Helvetica", fontSize=11,
+                        borderColor=VAULT, fillColor=PAPER, textColor=INK, borderWidth=0.8, forceBorder=True)
+    P.meta["cur"] = {}
+
+
+def build_leak_check(path, size):
+    """Free lead magnet: one-page subscription leak check."""
+    P = Planner(path, size)
+    P.c.setTitle("The Subscription Leak Check")
+    P.series = "FREE TOOL"
+    c, W, H, M = P.c, P.W, P.H, P.M
+    CW = W - 2 * M
+    y = P.page("The Subscription Leak Check", "10 minutes",
+               "Grab your last two bank or card statements. List every charge that repeats. Be honest about what you actually used. The totals add themselves up.")
+    P.text(W - M - 104, y - 4, "Currency", F_BODY, 9, MUTED, "right")
+    currency_picker(P, W - M - 96, y - 10)
+    y -= 26
+    sw = CW - 4 * 70 - 2 * 56 - 24
+    y = P.table(M, y, [("Service", sw, "text"), ("Per month", 70, "num", 2), ("Per year", 70, "calc", lambda p: f'N("{p}1")*12', 2),
+                       ("Used it last month?", 70, "check"), ("Cancel", 56, "check"),
+                       ("Saves / year", 70, "calc", lambda p: f'C("{p}4")?N("{p}1")*12:0', 2), ("Done", 56, "check")],
+                12, "lc", rh=20, total={1, 2, 5},
+                defaults=["Video streaming", "Music", "Gym or fitness app", "Cloud storage", "News or magazines", "Shopping membership", "", "", "", "", "", ""])
+    # result band
+    P.box(M, y - 86, CW, 80, VAULT)
+    cols = [("You pay every year", 'N("lc_tot_2")', "lc_year"), ("Cancelling saves", 'N("lc_tot_5")', "lc_save"),
+            ("That's back each month", 'N("lc_tot_5")/12', "lc_month")]
+    bw = (CW - 28 - 20) / 3
+    for i, (l, e, n) in enumerate(cols):
+        bx = M + 14 + i * (bw + 10)
+        P.text(bx, y - 26, l.upper(), F_BOLD, 7.5, HexColor("#A9C4BF"))
+        P.c.acroForm.textfield(name=n, tooltip=l, x=bx, y=y - 70, width=bw, height=30, value="", fontName="Helvetica", fontSize=16,
+                               borderStyle="underlined", borderWidth=0.6, borderColor=HexColor("#A9C4BF"), fillColor=HexColor("#24555A"),
+                               textColor=white, forceBorder=True)
+        P.meta[n] = dict(num=True, dec=2, calc=e); P.order.append(n)
+    y -= 106
+    P.text(M, y, "THREE RULES FOR KEEP OR CANCEL", F_BOLD, 8, GOLD)
+    rules = ["Didn't use it last month? Cancel. You can rejoin in two minutes if you miss it.",
+             "Would you sign up again today at this price? If not, cancel or downgrade.",
+             "Two services doing the same job? Keep the one you open most."]
+    y -= 18
+    for r in rules:
+        P.c.setFillColor(GOLD); P.c.circle(M + 4, y + 3, 2.2, stroke=0, fill=1)
+        y = P.wrap(M + 14, y, r, CW - 14, size=10, color=INK) - 3
+    y -= 8
+    P.box(M, y - 82, CW, 82, GOLD_SOFT)
+    P.text(M + 16, y - 24, "Found a leak? There are usually more.", F_DISP, 15, INK)
+    P.wrap(M + 16, y - 42, f"Financial Planner {YEAR} runs this check across your whole budget: a savings goal that splits itself into monthly targets, spending leaks, idle money, money people owe you, and 12 monthly budgets that add themselves up.", CW - 32, size=9.5, color=INK)
+    P.text(M + 16, y - 72, f"Get it at {SHOP}", F_BOLD, 10, VAULT)
+    P.c.linkURL(f"https://{SHOP}", (M + 16, y - 76, M + 260, y - 62), relative=0)
+    P.save()
+
+
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else HERE
     build(os.path.join(out, f"Financial-Planner-{YEAR}-A4.pdf"), A4)
     build(os.path.join(out, f"Financial-Planner-{YEAR}-US-Letter.pdf"), LETTER)
+    build_leak_check(os.path.join(out, "Subscription-Leak-Check-A4.pdf"), A4)
+    build_leak_check(os.path.join(out, "Subscription-Leak-Check-US-Letter.pdf"), LETTER)
     print("built")

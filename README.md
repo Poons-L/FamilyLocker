@@ -27,4 +27,8 @@ Rebuild with `python3 planner/pdf/build_planner.py` (needs `reportlab` and `pypd
 
 ## Listing kit (`planner/listing/`)
 
-Gumroad + Topmate copy (`LISTING.md`), six 2000×1600 listing images, Gumroad cover and thumbnail, a square Topmate image, and a sample-filled preview PDF.
+Topmate + Gumroad copy for The Nicheless Niche (`LISTING.md`), six 2000×1600 listing images, Gumroad cover and thumbnail, square Topmate images for the planner, the free Leak Check and the Career + Money bundle, and a sample-filled preview PDF.
+
+## Free lead magnet: Subscription Leak Check
+
+`planner/pdf/Subscription-Leak-Check-A4.pdf` and `-US-Letter.pdf`: a one-page fillable check that totals yearly subscription spend and what cancelling saves, with a link to the full planner. Built by the same script.
