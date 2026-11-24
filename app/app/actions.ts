@@ -8,6 +8,7 @@ import { loadHousehold, hasHousehold } from '@/lib/household';
 import { CATEGORY_LABELS, type Category } from '@/lib/types';
 import { hashToken, newToken } from '@/lib/tokens';
 import type { InviteState } from '@/lib/invite-state';
+import { normalisePhone } from '@/lib/whatsapp';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 // PRD §50: warn against secrets in free text.
@@ -258,4 +259,38 @@ export async function completeHandover() {
   if (error) redirect((d.isAdmin ? '/people' : '/') + '?error=' + encodeURIComponent(error.message));
   revalidatePath('/');
   redirect('/?handover=1');
+}
+
+// ---------- WhatsApp login ----------
+/** Only allow redirects back into this app. */
+const safeNext = (n: string) => (n.startsWith('/') && !n.startsWith('//') ? n : '/');
+
+export async function sendPhoneCode(form: FormData) {
+  const next = safeNext(text(form, 'next'));
+  const phone = normalisePhone(text(form, 'phone'));
+  const q = (extra: Record<string, string>) => '/login?' + new URLSearchParams({ ...extra, next }).toString();
+  if (!phone) redirect(q({ error: 'Enter your 10-digit mobile number, or include the country code (e.g. +65…).' }));
+  const supabase = await serverClient();
+  const { error } = await supabase.auth.signInWithOtp({ phone });
+  if (error) {
+    const friendly = error.status === 429 || /rate limit|after \d+ seconds/i.test(error.message)
+      ? 'We just sent you a code. Please wait a minute before asking for another.'
+      : /not set up|503|hook/i.test(error.message) ? "WhatsApp login isn't switched on yet. Please use email for now." : error.message;
+    redirect(q({ error: friendly }));
+  }
+  redirect(q({ step: 'code', phone }));
+}
+
+export async function verifyPhoneCode(form: FormData) {
+  const next = safeNext(text(form, 'next'));
+  const phone = normalisePhone(text(form, 'phone'));
+  const token = text(form, 'code').replace(/\s/g, '');
+  const again = (m: string): never => redirect('/login?' + new URLSearchParams({ step: 'code', phone: phone ?? '', next, error: m }).toString());
+  if (!phone) redirect('/login');
+  if (!/^\d{6}$/.test(token)) again('Enter the 6-digit code from WhatsApp.');
+  const supabase = await serverClient();
+  const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+  if (error) again(/expired|invalid/i.test(error.message) ? "That code didn't work or has expired. Ask for a new one." : error.message);
+  revalidatePath('/');
+  redirect(next);
 }

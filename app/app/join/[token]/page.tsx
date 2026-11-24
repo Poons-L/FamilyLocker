@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Nav } from '../../nav';
 import { joinInvite } from '../../actions';
 import { serverClient } from '@/lib/supabase/server';
+import { whatsappConfig } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +47,14 @@ export default async function Join({ params, searchParams }: { params: Promise<{
         {user ? (
           <form action={joinInvite} className="stack">
             <input type="hidden" name="token" value={token} />
-            <p>You&apos;re signed in as <strong>{user.email}</strong>.</p>
+            <p>You&apos;re signed in as <strong>{user.email || user.phone}</strong>.</p>
             <button className="btn" type="submit">Join {inv.household_name}</button>
           </form>
         ) : (
+          <>
+          {whatsappConfig() && process.env.SEND_SMS_HOOK_SECRET && (
+            <p><Link className="btn" href={`/login?next=${encodeURIComponent(`/join/${token}`)}`}>Continue with my mobile number</Link></p>
+          )}
           <form action={joinInvite} className="stack">
             <input type="hidden" name="token" value={token} />
             <label>Your email<input name="email" type="email" autoComplete="email" required /></label>
@@ -59,6 +64,7 @@ export default async function Join({ params, searchParams }: { params: Promise<{
               <button className="linkbtn" type="submit" name="mode" value="signin">I already have an account</button>
             </div>
           </form>
+          </>
         )}
       </section>
     </main>
