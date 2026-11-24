@@ -6,6 +6,8 @@ import { headers } from 'next/headers';
 import { serverClient } from '@/lib/supabase/server';
 import { loadHousehold, hasHousehold } from '@/lib/household';
 import { CATEGORY_LABELS, type Category } from '@/lib/types';
+import { hashToken, newToken } from '@/lib/tokens';
+import type { InviteState } from '@/lib/invite-state';
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 // PRD §50: warn against secrets in free text.
@@ -27,24 +29,117 @@ export async function sendLoginLink(form: FormData) {
   redirect('/login?sent=1');
 }
 
-export async function passwordAuth(form: FormData) {
+type Supabase = Awaited<ReturnType<typeof serverClient>>;
+
+/** Signs in or signs up from an email + password form. Returns a friendly error, or null when signed in. */
+async function authenticate(supabase: Supabase, form: FormData): Promise<string | null> {
   const email = text(form, 'email');
   const password = String(form.get('password') ?? '');
-  const mode = text(form, 'mode');
-  const back = (m: string) => redirect('/login?error=' + encodeURIComponent(m));
-  if (!/^\S+@\S+\.\S+$/.test(email)) back('Enter a valid email address.');
-  if (password.length < 8) back('Use a password of at least 8 characters.');
-  const supabase = await serverClient();
-  if (mode === 'signup') {
+  if (!/^\S+@\S+\.\S+$/.test(email)) return 'Enter a valid email address.';
+  if (password.length < 8) return 'Use a password of at least 8 characters.';
+  if (text(form, 'mode') === 'signup') {
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) back(/already registered/i.test(error.message) ? 'You already have an account. Sign in instead.' : error.message);
-    if (!data?.session) redirect('/login?sent=1');
+    if (error) return /already registered/i.test(error.message) ? 'You already have an account. Sign in instead.' : error.message;
+    if (!data?.session) return 'Check your email to confirm your account, then come back to this page.';
   } else {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) back(/invalid login/i.test(error.message) ? "That email and password don't match. New here? Create an account." : error.message);
+    if (error) return /invalid login/i.test(error.message) ? "That email and password don't match. New here? Create an account." : error.message;
   }
+  return null;
+}
+
+export async function passwordAuth(form: FormData) {
+  const supabase = await serverClient();
+  const err = await authenticate(supabase, form);
+  if (err) redirect('/login?error=' + encodeURIComponent(err));
   revalidatePath('/');
   redirect('/');
+}
+
+async function originOf() {
+  const h = await headers();
+  return h.get('origin') ?? `https://${h.get('host')}`;
+}
+
+/** Owner creates a single-use, 7-day invite link for someone in the household. */
+export async function createInvite(_prev: InviteState, form: FormData): Promise<InviteState> {
+  const d = await loadHousehold();
+  if (!hasHousehold(d) || !d.isAdmin) return { error: 'Only the household owner can invite people.' };
+  const personId = text(form, 'person');
+  const person = d.people[personId];
+  if (!person || person.isMember || personId === d.meId) return { error: 'This person already has a login.' };
+
+  const supabase = await serverClient();
+  await supabase.from('invitations').delete().eq('person_id', personId).is('accepted_at', null);
+  const token = newToken();
+  const { error } = await supabase.from('invitations').insert({
+    household_id: d.householdId, person_id: personId, invited_by: d.userId,
+    token_hash: hashToken(token), expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+  });
+  if (error) return { error: 'Could not create the invite. Please try again.' };
+  await supabase.from('audit_events').insert({
+    household_id: d.householdId, actor_user_id: d.userId, action: 'invitation.created', target_type: 'person', target_id: personId,
+  });
+  revalidatePath('/people');
+  const link = `${await originOf()}/join/${token}`;
+  const me = d.people[d.meId]?.name ?? 'I';
+  const message = `Hi ${person.name}, it's ${me}. I've set up FamilyOS so you can find our important family things if I'm ever not around. It takes 2 minutes: ${link}`;
+  return { link, whatsapp: 'https://wa.me/?text=' + encodeURIComponent(message) };
+}
+
+/** Invitee accepts: signs in or creates an account if needed, then joins the household. */
+export async function joinInvite(form: FormData) {
+  const token = text(form, 'token');
+  const back = (m: string): never => redirect(`/join/${encodeURIComponent(token)}?error=${encodeURIComponent(m)}`);
+  const supabase = await serverClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    const err = await authenticate(supabase, form);
+    if (err) back(err);
+  }
+  const { error } = await supabase.rpc('accept_invitation', { token });
+  if (error) back(error.message);
+  revalidatePath('/');
+  redirect('/?joined=1');
+}
+
+/** Change where something is and who knows, can open and handles it. */
+export async function updateItem(form: FormData) {
+  const d = await loadHousehold();
+  if (!hasHousehold(d)) redirect('/');
+  const id = text(form, 'id');
+  const item = d.items.find((i) => i.id === id);
+  const back = (m: string): never => redirect(`/items/${id}?error=${encodeURIComponent(m)}`);
+  if (!item) redirect('/');
+  if (SECRET.test(text(form, 'notes')) || SECRET.test(text(form, 'location'))) {
+    back("Please don't store passwords, PINs or OTPs here. Note where they're kept instead.");
+  }
+  const valid = (pid: string) => (pid && d.people[pid] ? pid : null);
+  const owner = item.ownerId;
+  const canOpen = form.getAll('canOpen').map(String).filter((p) => d.people[p] && p !== owner);
+  const knows = Array.from(new Set([...form.getAll('knows').map(String), ...canOpen])).filter((p) => d.people[p] && p !== owner);
+
+  const supabase = await serverClient();
+  const { data: updated, error } = await supabase.from('items').update({
+    title: text(form, 'title') || item.title, physical_location: text(form, 'location') || null,
+    reference_hint: text(form, 'reference') || null, expires_on: text(form, 'expires') || null,
+    is_critical: form.get('critical') === 'on', notes: text(form, 'notes') || null,
+    responsible_person_id: valid(text(form, 'responsible')), backup_person_id: valid(text(form, 'backup')),
+    visibility: canOpen.length ? 'shared' : 'private', last_verified_on: new Date().toISOString().slice(0, 10),
+  }).eq('id', id).select('id');
+  if (error || !updated?.length) back("You can't change this one. Only its owner can.");
+
+  await supabase.from('item_knows').delete().eq('item_id', id);
+  await supabase.from('item_access').delete().eq('item_id', id);
+  if (knows.length) await supabase.from('item_knows').insert(knows.map((person_id) => ({ item_id: id, person_id })));
+  if (canOpen.length) await supabase.from('item_access').insert(canOpen.map((person_id) => ({ item_id: id, person_id, granted_by: d.userId })));
+  const before = new Set(item.canOpen);
+  await supabase.from('audit_events').insert({
+    household_id: d.householdId, actor_user_id: d.userId, action: 'item.sharing_changed', target_type: 'item', target_id: id,
+    detail: { added: canOpen.filter((p) => !before.has(p)).length, removed: [...before].filter((p) => p !== owner && !canOpen.includes(p)).length },
+  });
+  revalidatePath('/');
+  redirect('/?saved=1');
 }
 
 export async function signOut() {
@@ -92,7 +187,7 @@ export async function addItem(form: FormData) {
   const valid = (id: string) => (id && d.people[id] ? id : null);
   const owner = valid(text(form, 'owner')) ?? d.meId;
   const knows = form.getAll('knows').map(String).filter((id) => d.people[id]);
-  const canOpen = form.getAll('canOpen').map(String).filter((id) => d.people[id]?.isMember);
+  const canOpen = form.getAll('canOpen').map(String).filter((id) => d.people[id]);
 
   const supabase = await serverClient();
   const { data: item, error } = await supabase.from('items').insert({

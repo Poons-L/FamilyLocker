@@ -46,9 +46,12 @@ export default async function NewItem({ searchParams }: { searchParams: Promise<
               {others.map((p) => <label key={p.id} className="check"><input type="checkbox" name="knows" value={p.id} /> {p.name}</label>)}
             </fieldset>
             <fieldset><legend>Who can open it in FamilyOS?</legend>
-              {others.filter((p) => p.isMember).length === 0
-                ? <span className="muted small">Nobody else has a login yet. Invites are coming next.</span>
-                : others.filter((p) => p.isMember).map((p) => <label key={p.id} className="check"><input type="checkbox" name="canOpen" value={p.id} /> {p.name}</label>)}
+              {others.map((p) => (
+                <label key={p.id} className="check">
+                  <input type="checkbox" name="canOpen" value={p.id} /> {p.name}
+                  {!p.isMember && <small className="muted"> (once they join)</small>}
+                </label>
+              ))}
             </fieldset>
           </>
         )}

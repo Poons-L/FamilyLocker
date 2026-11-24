@@ -13,7 +13,7 @@ export interface HouseholdData {
 }
 
 type ItemRow = {
-  id: string; title: string; category: Category; owner_person_id: string;
+  id: string; created_by: string; title: string; category: Category; owner_person_id: string;
   physical_location: string | null; external_location: string | null; reference_hint: string | null;
   expires_on: string | null; last_verified_on: string; responsible_person_id: string | null; backup_person_id: string | null;
   is_critical: boolean; emergency_kinds: string[]; notes: string | null;
@@ -37,7 +37,7 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
   const [{ data: peopleRows }, { data: itemRows }] = await Promise.all([
     supabase.from('people').select('id, display_name, full_name, relationship, user_id').eq('household_id', hh).order('created_at'),
     supabase.from('items')
-      .select('id, title, category, owner_person_id, physical_location, external_location, reference_hint, expires_on, last_verified_on, responsible_person_id, backup_person_id, is_critical, emergency_kinds, notes, item_knows(person_id), item_access(person_id)')
+      .select('id, created_by, title, category, owner_person_id, physical_location, external_location, reference_hint, expires_on, last_verified_on, responsible_person_id, backup_person_id, is_critical, emergency_kinds, notes, item_knows(person_id), item_access(person_id)')
       .eq('household_id', hh).order('created_at'),
   ]);
 
@@ -50,7 +50,7 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
     const knows = Array.from(new Set([r.owner_person_id, ...r.item_knows.map((k) => k.person_id)]));
     const canOpen = Array.from(new Set([r.owner_person_id, ...r.item_access.map((a) => a.person_id)]));
     return {
-      id: r.id, title: r.title, category: r.category, ownerId: r.owner_person_id, concerns: [r.owner_person_id],
+      id: r.id, createdBy: r.created_by, title: r.title, category: r.category, ownerId: r.owner_person_id, concerns: [r.owner_person_id],
       location: [r.physical_location, r.external_location].filter(Boolean).join(' · '),
       reference: r.reference_hint ?? undefined, expiresOn: r.expires_on ?? undefined, lastVerifiedOn: r.last_verified_on,
       knows, canOpen, responsibleId: r.responsible_person_id, backupId: r.backup_person_id,

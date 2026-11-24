@@ -5,12 +5,13 @@ import { createHousehold } from './actions';
 import { hasHousehold, loadHousehold } from '@/lib/household';
 import { supabaseConfigured } from '@/lib/supabase/server';
 import { continuityScore, dependsOn, findGaps, isSinglePointOfFailure, topActions } from '@/lib/readiness';
-import { CATEGORY_LABELS } from '@/lib/types';
+import { CATEGORY_LABELS, type Item } from '@/lib/types';
+import type { HouseholdData } from '@/lib/household';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string; joined?: string; saved?: string }> }) {
+  const { error, joined, saved } = await searchParams;
   if (!supabaseConfigured()) return <Landing />;
   const d = await loadHousehold();
 
@@ -34,6 +35,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     );
   }
 
+  if (!d.isAdmin) return <MemberHome d={d} joined={Boolean(joined)} />;
+
   const today = new Date();
   const score = continuityScore(d.items, today);
   const spofs = d.items.filter(isSinglePointOfFailure);
@@ -47,6 +50,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     <main>
       <Nav household={d.householdName} />
       <header><h1>{d.householdName}</h1></header>
+      {saved && <p className="ok">Saved. Your readiness has been updated.</p>}
 
       {d.items.length === 0 ? (
         <section className="panel">
@@ -77,12 +81,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
                 const g = findGaps(i, d.people, today);
                 return (
                   <li key={i.id}>
-                    <span><strong>{i.title}</strong><br /><span className="muted">{CATEGORY_LABELS[i.category]} · {i.location || 'Location not recorded'}</span></span>
-                    <span>{isSinglePointOfFailure(i) ? <span className="tag">Depends on {d.people[dependsOn(i)]?.name}</span> : g.length === 0 ? <span className="tag okt">Covered</span> : null}</span>
+                    <Link className="rowlink" href={`/items/${i.id}`}>
+                      <span><strong>{i.title}</strong><br /><span className="muted">{CATEGORY_LABELS[i.category]} · {i.location || 'Location not recorded'}</span></span>
+                      <span>{isSinglePointOfFailure(i) ? <span className="tag">Depends on {d.people[dependsOn(i)]?.name}</span> : g.length === 0 ? <span className="tag okt">Covered</span> : null}</span>
+                    </Link>
                   </li>
                 );
               })}
             </ul>
+            <p className="muted small">Tap anything to change where it is or who can see it.</p>
             <p><Link className="btn" href="/items/new">Add something</Link></p>
           </section>
 
@@ -124,6 +131,37 @@ function Landing() {
           <Link className="btn" href="/login">Get started</Link>
           <Link className="linkbtn" href="/demo">See a demo family</Link>
         </p>
+      </section>
+    </main>
+  );
+}
+
+// What an invited family member sees: only what's been shared with them, and what they're asked to handle.
+function MemberHome({ d, joined }: { d: HouseholdData; joined: boolean }) {
+  const owner = Object.values(d.people).find((p) => p.isMember && p.relationship === 'Self')?.name ?? 'Your family';
+  const handle = d.items.filter((i) => i.responsibleId === d.meId);
+  const backup = d.items.filter((i) => i.backupId === d.meId);
+  const row = (i: Item) => (
+    <li key={i.id}>
+      <Link className="rowlink" href={`/items/${i.id}`}>
+        <span><strong>{i.title}</strong><br /><span className="muted">{i.location || 'Location not recorded'}</span></span>
+      </Link>
+    </li>
+  );
+  return (
+    <main>
+      <Nav household={d.householdName} />
+      <header><h1>{d.householdName}</h1></header>
+      {joined && <p className="ok">Welcome, {d.people[d.meId]?.name}. You&apos;ve joined {d.householdName}.</p>}
+      <section className="panel">
+        <p className="big">{owner} has shared <strong>{d.items.length}</strong> important {d.items.length === 1 ? 'thing' : 'things'} with you.</p>
+        <p className="muted">If something happens, this is where you&apos;ll find where things are and who to call.</p>
+      </section>
+      {handle.length > 0 && <section className="panel"><h2>You handle</h2><ul className="plain">{handle.map(row)}</ul></section>}
+      {backup.length > 0 && <section className="panel"><h2>You&apos;re the backup for</h2><ul className="plain">{backup.map(row)}</ul></section>}
+      <section className="panel">
+        <h2>Everything shared with you</h2>
+        {d.items.length ? <ul className="plain">{d.items.map(row)}</ul> : <p className="muted">Nothing yet. {owner} can share things with you from their FamilyOS.</p>}
       </section>
     </main>
   );

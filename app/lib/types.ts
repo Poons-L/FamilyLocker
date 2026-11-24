@@ -38,6 +38,8 @@ export interface Item {
   title: string;
   category: Category;
   ownerId: PersonId;
+  /** Login that created it (database items only). */
+  createdBy?: string;
   /** Whose life this item concerns (e.g. parents' insurance concerns both parents). */
   concerns: PersonId[];
   /** Where the family would look for it. Empty means not recorded. */
