@@ -32,3 +32,5 @@ Topmate + Gumroad copy for The Nicheless Niche (`LISTING.md`), six 2000×1600 li
 ## Free lead magnet: Subscription Leak Check
 
 `planner/pdf/Subscription-Leak-Check-A4.pdf` and `-US-Letter.pdf`: a one-page fillable check that totals yearly subscription spend and what cancelling saves, with a link to the full planner. Built by the same script.
+
+Fonts: `planner/pdf/fonts/` holds Gelasio (SIL Open Font License), a Georgia-metric serif matching the TNN kits.

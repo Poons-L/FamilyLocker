@@ -20,20 +20,24 @@ SHOP = "topmate.io/the_nicheless_niche"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---------- brand ----------
-INK = HexColor("#141414"); MUTED = HexColor("#5E5A52"); LINE = HexColor("#DAD4C8")
-VAULT = HexColor("#141414"); VAULT_SOFT = HexColor("#F1EEE7"); GOLD = HexColor("#A67C2E")
-GOLD_SOFT = HexColor("#F7EFDD"); FIELD = HexColor("#F6F5F1"); CALC = HexColor("#FAF3E3"); PAPER = HexColor("#FFFFFF")
+# The Nicheless Niche house style: dark cover, cream pages, Georgia-style serif, gold accents
+INK = HexColor("#1F1D1A"); MUTED = HexColor("#6E665A"); LINE = HexColor("#E2D7C2")
+VAULT = HexColor("#121318"); VAULT_SOFT = HexColor("#FFFDF8"); GOLD = HexColor("#A57A30")
+GOLD_SOFT = HexColor("#F1E5CC"); FIELD = HexColor("#FFFDF7"); CALC = HexColor("#F3E6CB"); PAPER = HexColor("#FFFDF7")
+CREAM = HexColor("#F8F2E7"); GOLD_BRIGHT = HexColor("#D2A85C"); NIGHT_FIELD = HexColor("#1E2026")
+NOTE_NAME = "Ulka"   # signs the tip boxes, as in the other TNN kits
 
 def reg(name, path, fallback):
     try:
         pdfmetrics.registerFont(TTFont(name, path)); return name
     except Exception:
         return fallback
-F_DISP = reg("Caladea-Bold", "/usr/share/fonts/truetype/crosextra/Caladea-Bold.ttf", "Times-Bold")
-F_DISP_I = reg("Caladea-Italic", "/usr/share/fonts/truetype/crosextra/Caladea-Italic.ttf", "Times-Italic")
-F_BODY = reg("Carlito", "/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf", "Helvetica")
-F_BOLD = reg("Carlito-Bold", "/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf", "Helvetica-Bold")
-F_MONO = reg("JBMono", "/usr/share/fonts/truetype/jetbrains-mono/JetBrainsMono-Medium.ttf", "Courier")
+FD = os.path.join(HERE, "fonts")   # Gelasio: Georgia-metric serif (SIL OFL)
+F_DISP = reg("Gelasio-Bold", os.path.join(FD, "Gelasio-Bold.ttf"), "Times-Bold")
+F_DISP_I = reg("Gelasio-Italic", os.path.join(FD, "Gelasio-Italic.ttf"), "Times-Italic")
+F_BODY = reg("Gelasio", os.path.join(FD, "Gelasio-Regular.ttf"), "Times-Roman")
+F_BOLD = F_DISP
+F_MONO = F_BODY
 
 MONTHS = [calendar.month_name[i] for i in range(1, 13)]
 MON = [calendar.month_abbr[i] for i in range(1, 13)]
@@ -48,6 +52,7 @@ class Planner:
         self.c.setTitle(f"Financial Planner {YEAR}")
         self.c.setAuthor(BRAND)
         self.series = f"FINANCIAL PLANNER {YEAR}"
+        self.docname = f"Financial Planner {YEAR}"
         self.c.setSubject("Fillable personal finance planner")
         self.meta = {}       # field name -> dict(num, dec, calc)
         self.order = []      # calculation order
@@ -56,7 +61,14 @@ class Planner:
     # ---------- primitives ----------
     def text(self, x, y, s, font=None, size=10, color=INK, align="left"):
         c = self.c; c.setFont(font or F_BODY, size); c.setFillColor(color)
-        {"left": c.drawString, "right": c.drawRightString, "center": c.drawCentredString}[align](x, y, s)
+        cs = 1.3 if (size <= 9 and any(ch.isalpha() for ch in s) and s.upper() == s) else 0
+        if cs and align != "left":
+            w = pdfmetrics.stringWidth(s, font or F_BODY, size) + cs * (len(s) - 1)
+            x = x - w if align == "right" else x - w / 2
+        if cs:
+            c.drawString(x, y, s, charSpace=cs)
+        else:
+            {"left": c.drawString, "right": c.drawRightString, "center": c.drawCentredString}[align](x, y, s)
 
     def wrap(self, x, y, s, width, font=None, size=10, color=MUTED, lead=None):
         font = font or F_BODY; lead = lead or size * 1.35
@@ -94,27 +106,57 @@ class Planner:
             self.c.showPage()
         self.page_no += 1
         c, W, H, M = self.c, self.W, self.H, self.M
-        c.setFillColor(VAULT); c.rect(0, H - 6, W, 6, stroke=0, fill=1)
-        self.text(M, H - M - 2, self.series, F_BOLD, 7.5, GOLD)
-        self.text(W - M, H - M - 2, kicker.upper(), F_BOLD, 7.5, MUTED, "right")
-        self.text(M, H - M - 32, title, F_DISP, 26, VAULT)
+        c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+        self.text(M, H - M - 2, kicker.upper(), F_BOLD, 7.5, GOLD)
+        self.text(M, H - M - 28, title, F_DISP, 24, INK)
         y = H - M - 46
         if intro:
-            y = self.wrap(M, y - 4, intro, W - 2 * M, size=10.5) - 4
+            y = self.wrap(M, y, intro, W - 2 * M, font=F_DISP_I, size=10.5) + 4
+        c.setFillColor(GOLD_BRIGHT); c.rect(M, y - 6, 46, 2.2, stroke=0, fill=1)
+        y -= 14
         # footer
         c.setStrokeColor(LINE); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
-        self.text(M, 20, f"{BRAND}  ·  {TAGLINE}", F_BOLD, 7.5, MUTED)
-        self.text(W - M, 20, str(self.page_no), F_MONO, 7.5, MUTED, "right")
+        self.text(M, 20, BRAND.upper(), F_BOLD, 7, INK)
+        bw = pdfmetrics.stringWidth(BRAND.upper(), F_BOLD, 7) + 1.3 * len(BRAND) + 6
+        self.text(M + bw, 20, f"·  {self.docname}  ·  Get your own copy: {SHOP}", F_BODY, 7, MUTED)
+        self.text(W - M, 20, str(self.page_no), F_BODY, 7.5, MUTED, "right")
         return y
 
+    def note(self, x, y, w, body):
+        """Ulka's note: beige box, gold bold lead-in, italic body. Returns y below."""
+        lead = f"{NOTE_NAME}'s note: "
+        size = 9.5; ld = size * 1.4
+        lw = pdfmetrics.stringWidth(lead, F_BOLD, size)
+        words, lines, line, avail = body.split(), [], "", w - 24 - lw
+        for wd in words:
+            t = (line + " " + wd).strip()
+            if pdfmetrics.stringWidth(t, F_DISP_I, size) > avail:
+                lines.append(line); line = wd; avail = w - 24
+            else:
+                line = t
+        lines.append(line)
+        h = 16 + ld * len(lines)
+        self.c.setFillColor(GOLD_SOFT); self.c.roundRect(x, y - h, w, h, 5, stroke=0, fill=1)
+        ty = y - 15
+        self.text(x + 12, ty, lead, F_BOLD, size, GOLD)
+        for i, ln in enumerate(lines):
+            self.text(x + 12 + (lw if i == 0 else 0), ty, ln, F_DISP_I, size, INK); ty -= ld
+        return y - h - 10
+
     def section(self, x, y, label, w=None):
-        self.text(x, y, label.upper(), F_BOLD, 8, GOLD)
-        c = self.c; c.setStrokeColor(GOLD); c.setLineWidth(0.8)
+        self.text(x, y, label.upper(), F_BOLD, 7.5, GOLD)
+        c = self.c; c.setStrokeColor(LINE); c.setLineWidth(0.6)
         c.line(x, y - 4, x + (w or (self.W - 2 * self.M)), y - 4)
         return y - 16
 
-    def box(self, x, y, w, h, fill=VAULT_SOFT, r=6):
-        self.c.setFillColor(fill); self.c.roundRect(x, y, w, h, r, stroke=0, fill=1)
+    def box(self, x, y, w, h, fill=VAULT_SOFT, r=5):
+        c = self.c
+        if fill == VAULT_SOFT:   # white card with a gold left edge, like the kits' step cards
+            c.setFillColor(fill); c.setStrokeColor(LINE); c.setLineWidth(0.6)
+            c.roundRect(x, y, w, h, r, stroke=1, fill=1)
+            c.setFillColor(GOLD_BRIGHT); c.rect(x, y, 3, h, stroke=0, fill=1)
+        else:
+            c.setFillColor(fill); c.roundRect(x, y, w, h, r, stroke=0, fill=1)
 
     def table(self, x, y, cols, rows, prefix, rh=17, defaults=None, total=None, checked=()):
         """cols: list of (header, width, kind, extra). kind: text|num|calc|check.
@@ -227,29 +269,9 @@ def build(path, size):
 
     # ---------------- 1. COVER ----------------
     P.page_no = 1
-    c.setFillColor(VAULT); c.rect(0, 0, W, H, stroke=0, fill=1)
-    c.setFillColor(GOLD); c.rect(M, H * 0.62, 46, 4, stroke=0, fill=1)
-    P.text(M, H * 0.62 + 20, BRAND.upper(), F_BOLD, 10, HexColor("#D4AF5F"))
-    P.text(M, 60, TAGLINE, F_DISP_I, 11, HexColor("#B9B2A3"))
-    P.text(M, H * 0.62 - 50, "Financial", F_DISP, 58, white)
-    P.text(M, H * 0.62 - 110, "Planner", F_DISP, 58, white)
-    P.text(M, H * 0.62 - 190, str(YEAR), F_MONO, 64, HexColor("#D4AF5F"))
-    P.text(M, H * 0.62 - 225, "Save more. Waste less. Know where every bit of money goes.", F_DISP_I, 14, HexColor("#E8E1D0"))
-    # big year glyph decoration
-    c.setStrokeColor(HexColor("#3A3226")); c.setLineWidth(1)
-    for i in range(6):
-        c.circle(W - 30, H * 0.86, 70 + i * 34, stroke=1, fill=0)
-    yb = 150
-    P.text(M, yb + 42, "THIS PLANNER BELONGS TO", F_BOLD, 8, HexColor("#B9B2A3"))
-    P.c.acroForm.textfield(name="owner", tooltip="Your name", x=M, y=yb + 10, width=CW * 0.6, height=24, value="",
-                           fontName="Helvetica", fontSize=14, borderStyle="underlined", borderWidth=0.8,
-                           borderColor=HexColor("#B9B2A3"), fillColor=HexColor("#2B2B2B"), textColor=white, forceBorder=True)
-    P.meta["owner"] = {}
-    P.text(M, yb - 18, f"MY MONEY WORD FOR {YEAR}", F_BOLD, 8, HexColor("#B9B2A3"))
-    P.c.acroForm.textfield(name="word", tooltip="One word for your year, e.g. Freedom", x=M, y=yb - 50, width=CW * 0.6, height=24,
-                           value="", fontName="Helvetica", fontSize=14, borderStyle="underlined", borderWidth=0.8,
-                           borderColor=HexColor("#B9B2A3"), fillColor=HexColor("#2B2B2B"), textColor=white, forceBorder=True)
-    P.meta["word"] = {}
+    cover(P, "THE MONEY PLANNER", ["Financial Planner", str(YEAR)],
+          "Know where every bit of money goes. Save more, waste less, and collect what you're owed.",
+          [("THIS PLANNER BELONGS TO", "owner"), (f"MY MONEY WORD FOR {YEAR}", "word")])
 
     # ---------------- 2. HOW TO USE ----------------
     y = P.page("How to use this planner", "Start here",
@@ -265,16 +287,13 @@ def build(path, size):
     ]
     y -= 10
     for i, (h, d) in enumerate(steps):
-        P.box(M, y - 34, 26, 26, VAULT, 13)
-        P.text(M + 13, y - 25, str(i + 1), F_MONO, 11, white, "center")
-        P.text(M + 40, y - 13, h, F_BOLD, 12, INK)
-        P.wrap(M + 40, y - 28, d, CW - 40, size=10)
-        y -= 50
-    y -= 6
-    P.box(M, y - 78, CW, 78, GOLD_SOFT)
-    P.text(M + 14, y - 20, "Good to know", F_BOLD, 11, INK)
-    yy = P.wrap(M + 14, y - 36, "Automatic totals work in the free Adobe Acrobat Reader and most desktop PDF apps. In some browsers and phone apps you can still type in every box, but totals may not update until you open the file in Acrobat Reader.", CW - 28, size=9.5, color=INK)
-    y -= 100
+        P.text(M + 2, y - 15, str(i + 1), F_DISP, 13, GOLD)
+        P.text(M + 26, y - 13, h, F_BOLD, 11.5, INK)
+        P.wrap(M + 26, y - 28, d, CW - 26, font=F_DISP_I, size=9.5)
+        y -= 46
+    y -= 4
+    y = P.note(M, y, CW, "totals work in the free Adobe Acrobat Reader and most desktop PDF apps. In some browsers and phone apps you can still type in every box, but totals may not update until you open the file in Acrobat Reader.")
+    y -= 8
     P.box(M, y - 58, CW, 58, VAULT_SOFT)
     P.text(M + 14, y - 22, "Choose your currency", F_BOLD, 11, INK)
     P.text(M + 14, y - 38, "Pick from the list or type your own (e.g. S$, RM, Rs). Every amount updates.", F_BODY, 9.5, MUTED)
@@ -359,9 +378,7 @@ def build(path, size):
                            ("Used it last month?", 70, "check"), ("Cancel", 52, "check"),
                            ("Saves / year", 70, "calc", lambda p: f'C("{p}4")?N("{p}1")*12:0', 2), ("Done", 52, "check")],
                 16, "sub", rh=19, total={1, 2, 5})
-    P.box(M, y - 70, CW, 64, GOLD_SOFT)
-    P.text(M + 14, y - 24, "Quick wins", F_BOLD, 10.5, INK)
-    P.wrap(M + 14, y - 40, "Cancel anything you didn't use last month. Swap yearly plans for monthly ones you can pause. Put free-trial end dates in your phone calendar the day you sign up. Share family plans where the rules allow.", CW - 28, size=9.5, color=INK)
+    P.note(M, y - 6, CW, "cancel anything you didn't use last month. Swap yearly plans for monthly ones you can pause. Put free-trial end dates in your phone calendar the day you sign up.")
 
     # ---------------- 6. SPENDING LEAKS ----------------
     y = P.page("Spending leaks", "Find the money",
@@ -406,9 +423,9 @@ def build(path, size):
     P.field("ef_target", W - M - 100, y - 9, 100, 17, calc='N("ef_month")*6')
     y -= 34
     y = P.section(M, y, "Match the money to when you need it")
-    cols3 = [("Need it within a year", "High-yield savings", "Instant access, very low risk. Home for your safety net and short goals."),
-             ("Need it in 1 to 3 years", "Term or fixed deposit", "Locked for a set time at a fixed rate. Ladder a few so one matures every few months."),
-             ("Won't touch it for 5+ years", "Diversified index fund", "Grows more over time but the value moves up and down. Invest a set amount monthly.")]
+    cols3 = [("Within a year", "High-yield savings", "Instant access, very low risk. Home for your safety net and short goals."),
+             ("In 1 to 3 years", "Term or fixed deposit", "Locked for a set time at a fixed rate. Ladder a few so one matures every few months."),
+             ("5+ years away", "Diversified index fund", "Grows more over time but the value moves up and down. Invest a set amount monthly.")]
     bw3 = (CW - 20) / 3
     for i, (when, what, why) in enumerate(cols3):
         bx = M + i * (bw3 + 10)
@@ -500,9 +517,7 @@ def build(path, size):
     P.field("er_tot_sv", M + 4 * (tw + 4), y, tw, 18, calc=SUM([f"er_sv_{k}" for k in range(12)]))
     P.field("er_tot_rate", M + 5 * (tw + 4), y, tw, 18, calc='N("er_tot_ac")>0?N("er_tot_sv")/N("er_tot_ac")*100:0')
     y -= 34
-    P.box(M, y - 62, CW, 62, GOLD_SOFT)
-    P.text(M + 14, y - 22, "Grow your earnings", F_BOLD, 10.5, INK)
-    P.wrap(M + 14, y - 38, "Saving has a floor; earning doesn't. Each quarter, pick one move: ask for a raise with evidence, take a paid side project, sell what you no longer use, or learn a skill that pays more.", CW - 28, size=9.5, color=INK)
+    P.note(M, y, CW, "saving has a floor; earning doesn't. Each quarter, pick one move: ask for a raise with evidence (the Appraisal Season Kit helps), take a paid side project, or sell what you no longer use.")
 
     # ---------------- 10-21. MONTHLY PAGES ----------------
     INC = ["Salary / main income", "Bonus or commission", "Side income / freelance", "Interest and dividends", "Rental income", "Other"]
@@ -547,7 +562,7 @@ def build(path, size):
         P.box(M, y - 54, CW, 50, VAULT_SOFT)
         taxexpr = "(" + "+".join(f'(C("{p}in_{r}_3")?N("{p}in_{r}_2"):0)' for r in range(1, 7)) + ')*N("tax_rate")/100'
         sx = [(f"Income", f'N("{p}in_tot_2")', f"{p}_inc"), ("Spent", f'N("{p}ex_tot_2")', f"{p}_spent"),
-              ("Set aside for tax", taxexpr, f"{p}_tax"),
+              ("Tax pot", taxexpr, f"{p}_tax"),
               ("Left over", f'N("{p}in_tot_2")-N("{p}ex_tot_2")-N("{p}_tax")', f"{p}_left")]
         sw4 = (CW - 28 - 40) / 5
         for i, (l, e, n) in enumerate(sx):
@@ -606,6 +621,31 @@ def build(path, size):
     P.save()
 
 
+def cover(P, kicker, title_lines, sub, fields):
+    """Dark cover in the TNN kit style."""
+    c, W, H, M = P.c, P.W, P.H, P.M
+    CW = W - 2 * M
+    c.setFillColor(VAULT); c.rect(0, 0, W, H, stroke=0, fill=1)
+    y = H - M - 6
+    P.text(M, y, f"{BRAND.upper()}  ·  {kicker}", F_BOLD, 7.5, GOLD_BRIGHT)
+    y -= 50
+    for ln in title_lines:
+        P.text(M, y, ln, F_DISP, 40, HexColor("#F5EFE3")); y -= 44
+    c.setFillColor(GOLD_BRIGHT); c.rect(M, y + 18, 60, 2.6, stroke=0, fill=1)
+    y = P.wrap(M, y - 6, sub, CW * 0.72, font=F_DISP_I, size=13, color=HexColor("#CFC8BA"), lead=19)
+    y -= 46
+    for lab, name in fields:
+        P.text(M, y, lab, F_BOLD, 7.5, GOLD_BRIGHT)
+        c.acroForm.textfield(name=name, tooltip=lab.title(), x=M, y=y - 30, width=CW * 0.68, height=22, value="",
+                             fontName="Helvetica", fontSize=12, borderStyle="underlined", borderWidth=0.6,
+                             borderColor=HexColor("#4A4D57"), fillColor=NIGHT_FIELD, textColor=white, forceBorder=True)
+        P.meta[name] = {}
+        y -= 62
+    c.setStrokeColor(HexColor("#2E3038")); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
+    P.text(M, 20, BRAND.upper(), F_BOLD, 7, HexColor("#F5EFE3"))
+    P.text(W - M, 20, "Fill it on your phone or print it", F_BODY, 7.5, HexColor("#B9B2A3"), "right")
+
+
 def currency_picker(P, x, y):
     P.c.acroForm.choice(name="cur", tooltip="Currency symbol", value="$", options=["$", "€", "£", "¥", "No symbol", "A$", "S$", "NZ$", "HK$", "C$", "Rs", "INR", "RM", "Rp", "PHP", "THB", "AED", "SAR", "ZAR", "CHF", "KRW"],
                         fieldFlags="combo edit", x=x, y=y, width=96, height=20, fontName="Helvetica", fontSize=11,
@@ -618,9 +658,10 @@ def build_leak_check(path, size):
     P = Planner(path, size)
     P.c.setTitle("The Subscription Leak Check")
     P.series = "FREE TOOL"
+    P.docname = "Subscription Leak Check"
     c, W, H, M = P.c, P.W, P.H, P.M
     CW = W - 2 * M
-    y = P.page("The Subscription Leak Check", "10 minutes",
+    y = P.page("The Subscription Leak Check", "Free tool  ·  10 minutes",
                "Grab your last two bank or card statements. List every charge that repeats. Be honest about what you actually used. The totals add themselves up.")
     P.text(W - M - 104, y - 4, "Currency", F_BODY, 9, MUTED, "right")
     currency_picker(P, W - M - 96, y - 10)
