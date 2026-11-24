@@ -29,7 +29,7 @@ export default async function People({ searchParams }: { searchParams: Promise<{
           {Object.values(d.people).map((p) => (
             <li key={p.id}>
               <span>
-                <strong>{p.name}</strong>{p.relationship && <span className="muted"> · {p.relationship}</span>}
+                <strong>{p.name}</strong>{p.relationship && <span className="muted"> · {p.relationship}</span>}{p.phone && <span className="muted"> · {p.phone}</span>}
                 <br />
                 <span className="muted small">
                   {p.id === d.meId ? 'You' : p.isMember ? 'Has joined' : pendingFor.has(p.id) ? 'Invite sent, not joined yet' : 'Not invited yet'}
@@ -81,8 +81,9 @@ export default async function People({ searchParams }: { searchParams: Promise<{
           <form action={addPerson} className="stack">
             <div className="row2">
               <label>Name<input name="name" placeholder="e.g. Meera" required /></label>
-              <label>Relationship<input name="relationship" placeholder="e.g. Spouse, Dad, CA" /></label>
+              <label>Relationship<input name="relationship" placeholder="e.g. Spouse, Dad, CA, Doctor" /></label>
             </div>
+            <label>Phone <small>Optional. Shown in emergencies, e.g. for your doctor or CA.</small><input name="phone" type="tel" inputMode="tel" /></label>
             <button className="btn" type="submit">Add person</button>
           </form>
         </section>

@@ -37,7 +37,7 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
 
   const hh = membership.household_id as string;
   const [{ data: peopleRows }, { data: itemRows }] = await Promise.all([
-    supabase.from('people').select('id, display_name, full_name, relationship, user_id').eq('household_id', hh).order('created_at'),
+    supabase.from('people').select('id, display_name, full_name, relationship, user_id, contact_phone').eq('household_id', hh).order('created_at'),
     supabase.from('items')
       .select('id, created_by, title, category, owner_person_id, physical_location, external_location, reference_hint, expires_on, last_verified_on, responsible_person_id, backup_person_id, is_critical, emergency_kinds, notes, release_to_successor, item_knows(person_id), item_access(person_id)')
       .eq('household_id', hh).order('created_at'),
@@ -45,7 +45,7 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
 
   const people: Record<string, Person> = {};
   for (const p of peopleRows ?? []) {
-    people[p.id] = { id: p.id, name: p.display_name, fullName: p.full_name ?? p.display_name, relationship: p.relationship ?? '', isMember: Boolean(p.user_id) };
+    people[p.id] = { id: p.id, name: p.display_name, fullName: p.full_name ?? p.display_name, relationship: p.relationship ?? '', isMember: Boolean(p.user_id), phone: p.contact_phone ?? undefined };
   }
 
   const items: Item[] = ((itemRows ?? []) as unknown as ItemRow[]).map((r) => {

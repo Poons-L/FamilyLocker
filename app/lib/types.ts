@@ -31,6 +31,7 @@ export interface Person {
   relationship: string;
   /** Has a FamilyOS login and can be shared with. */
   isMember: boolean;
+  phone?: string;
 }
 
 export interface Item {

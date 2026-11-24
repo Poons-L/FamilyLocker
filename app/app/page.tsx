@@ -50,6 +50,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     <main>
       <Nav household={d.householdName} />
       <header><h1>{d.householdName}</h1></header>
+      <form className="searchbar" action="/find">
+        <label className="sr" htmlFor="q">Find something</label>
+        <input id="q" name="q" type="search" placeholder="What are you looking for? e.g. health insurance" />
+        <button className="btn" type="submit">Find</button>
+      </form>
       {saved && <p className="ok">Saved. Your readiness has been updated.</p>}
       {handover && <p className="ok">Handover complete. You&apos;re now an owner of {d.householdName}.</p>}
       {cancelled && <p className="ok">Handover cancelled. Nothing has changed.</p>}
@@ -162,6 +167,11 @@ function MemberHome({ d, joined, error }: { d: HouseholdData; joined: boolean; e
     <main>
       <Nav household={d.householdName} />
       <header><h1>{d.householdName}</h1></header>
+      <form className="searchbar" action="/find">
+        <label className="sr" htmlFor="q">Find something</label>
+        <input id="q" name="q" type="search" placeholder="What are you looking for? e.g. health insurance" />
+        <button className="btn" type="submit">Find</button>
+      </form>
       {joined && <p className="ok">Welcome, {d.people[d.meId]?.name}. You&apos;ve joined {d.householdName}.</p>}
       {error && <p className="err">{error}</p>}
       {d.successorId === d.meId && <SuccessorPanel d={d} owner={owner} />}

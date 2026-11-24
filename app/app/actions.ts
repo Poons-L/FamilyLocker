@@ -174,6 +174,7 @@ export async function addPerson(form: FormData) {
   const { error } = await supabase.from('people').insert({
     household_id: d.householdId, display_name: name, full_name: text(form, 'full') || null,
     relationship: text(form, 'relationship') || null, contact_email: text(form, 'email') || null,
+    contact_phone: text(form, 'phone') || null,
   });
   if (error) redirect('/people?error=' + encodeURIComponent(error.message));
   revalidatePath('/people');
