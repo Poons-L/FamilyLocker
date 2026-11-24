@@ -3,15 +3,15 @@ Family Digilocker
 
 ## Money Planner (`planner/index.html`)
 
-A private, interactive financial planner for individuals. One self-contained web page, no server, no sign-up.
+A private personal money coach for individuals, usable in any country. One self-contained web page, no server, no sign-up.
 
-- **Overview**: money health score out of 100 with five checks (savings rate, emergency fund, debt load, goals, retirement)
-- **Budget**: income and expenses tagged as needs, wants or savings, compared to the 50/30/20 guide
-- **Net worth**: assets and liabilities, with emergency-fund cover from liquid assets
-- **Goals**: inflation-adjusted cost of each goal and the monthly SIP needed
-- **Retirement**: corpus needed, projected corpus, extra SIP to close the gap, lifetime chart
+- **My plan**: savings goal (e.g. save 100K this year), monthly amount needed, money found toward it, and a checklist action plan
+- **Subscriptions**: flags services you rarely or never use and totals what cancelling saves
+- **Spending**: essentials vs flexible spending, with suggested targets
+- **Idle money**: spots cash earning low interest, sizes a safety net, and compares high-yield savings, term deposits and index funds
+- **Owed to me**: tracks IOUs, flags overdue ones and drafts friendly reminders in three tones (gentle, clear, firm)
 
-Data is saved only in the user's own browser. Currencies: INR (lakh/crore format), SGD, AUD, USD, GBP, AED.
+Data is saved only in the user's own browser. Pick any currency symbol.
 
 To try it, open `planner/index.html` in any browser.
 

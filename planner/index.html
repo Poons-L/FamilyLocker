@@ -1,19 +1,19 @@
 <title>Digitlocka Money Planner</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="A private, interactive personal financial planner: budget, net worth, goals and retirement in one place.">
+<meta name="description" content="A private personal money coach: hit your savings goal, cut unused subscriptions, put idle cash to work and collect what you're owed.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: a single working column. Sticky brand bar + tab strip, then one panel at a time:
-   a summary band of key figures on top, inputs and charts below in a two-column grid that stacks on phones. */
+/* Layout: one working column. Sticky brand bar + tabs. "Plan" tab leads with the savings goal and the
+   money the app has found toward it; each other tab is a list the user edits, with its findings on top. */
 :root{
   --bg:#f3f5f2; --surface:#ffffff; --sunk:#e8ece7; --line:#d3d9d2;
   --ink:#16222e; --muted:#5b6872;
   --accent:#c9781a; --accent-ink:#ffffff; --accent-soft:#f6e6d0;
-  --vault:#1f4a4f;           /* secondary brand: deep locker teal */
-  --good:#2f7d4f; --warn:#b7791f; --bad:#b4413a;
-  --chart-a:#1f4a4f; --chart-b:#c9781a; --chart-c:#8aa39b;
+  --vault:#1f4a4f; --vault-soft:#dbe8e5;
+  --good:#2f7d4f; --warn:#a86d14; --bad:#b4413a;
+  --s1:#1f4a4f; --s2:#c9781a; --s3:#6f9a8f; --s4:#d9a75c; --s5:#9bb5ad;
   --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -23,18 +23,18 @@
   --bg:#0f1519; --surface:#162027; --sunk:#1c2830; --line:#2a3943;
   --ink:#e6ece9; --muted:#97a6ae;
   --accent:#e59a3e; --accent-ink:#1a1206; --accent-soft:#3a2b17;
-  --vault:#7cc0b8;
+  --vault:#7cc0b8; --vault-soft:#1d3436;
   --good:#5cbf86; --warn:#e0b04f; --bad:#e2766d;
-  --chart-a:#7cc0b8; --chart-b:#e59a3e; --chart-c:#51666a;
+  --s1:#7cc0b8; --s2:#e59a3e; --s3:#4f8a80; --s4:#b88541; --s5:#3f5c5a;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --bg:#0f1519; --surface:#162027; --sunk:#1c2830; --line:#2a3943;
   --ink:#e6ece9; --muted:#97a6ae;
   --accent:#e59a3e; --accent-ink:#1a1206; --accent-soft:#3a2b17;
-  --vault:#7cc0b8;
+  --vault:#7cc0b8; --vault-soft:#1d3436;
   --good:#5cbf86; --warn:#e0b04f; --bad:#e2766d;
-  --chart-a:#7cc0b8; --chart-b:#e59a3e; --chart-c:#51666a;
+  --s1:#7cc0b8; --s2:#e59a3e; --s3:#4f8a80; --s4:#b88541; --s5:#3f5c5a;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -48,32 +48,31 @@ h2{font-size:1.5rem} h3{font-size:1.05rem}
 .muted{color:var(--muted)}
 .label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
-/* header */
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;gap:12px;padding-block:12px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
 .mark{width:34px;height:34px;border-radius:8px;background:var(--vault);display:grid;place-items:center}
-.mark svg{display:block}
 .brand b{font-family:var(--f-display);font-size:1.15rem;letter-spacing:-.01em}
 .brand span{display:block;font-size:.75rem;color:var(--muted);line-height:1.2}
-select,input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
-input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px}
 button:hover{border-color:var(--muted)}
 .btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn-primary:hover{border-color:var(--accent);filter:brightness(1.05)}
 .btn-ghost{border-color:transparent;background:transparent;color:var(--muted)}
-.btn-ghost:hover{color:var(--ink)}
+.btn-ghost:hover{color:var(--ink);border-color:transparent}
+.btn-sm{padding:4px 10px;font-size:.85rem}
 nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
-nav.tabs a{padding:10px 14px;color:var(--muted);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+nav.tabs a{padding:10px 14px;color:var(--muted);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center}
 nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs a .badge{font-size:.7rem;font-family:var(--f-num);background:var(--accent-soft);color:var(--warn);border-radius:99px;padding:1px 7px}
 
 main{padding-block:24px 48px}
 .notice{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:var(--r);padding:10px 14px;font-size:.9rem;margin-bottom:20px}
-.notice button{padding:4px 10px;font-size:.85rem}
 .panel-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.panel-head p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.panel-head p{margin:4px 0 0;color:var(--muted);max-width:64ch}
 
-/* figures band */
 .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
 .fig{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .fig .v{font-family:var(--f-num);font-size:1.45rem;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere}
@@ -82,72 +81,118 @@ main{padding-block:24px 48px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 @media (max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px}
-.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:20px}
 
-/* editable rows */
+/* goal hero */
+.hero{background:var(--vault);color:#fff;border-radius:14px;padding:22px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px;margin-bottom:20px}
+:root:not([data-theme="light"]) .hero{}
+.hero h2{font-size:clamp(1.4rem,3.2vw,2.1rem);color:#fff}
+.hero .sub{color:rgba(255,255,255,.78);margin:6px 0 0}
+.hero .track{height:14px;border-radius:99px;background:rgba(255,255,255,.18);position:relative;overflow:hidden;margin-top:18px}
+.hero .track i{position:absolute;inset:0 auto 0 0;background:#f0b35e;border-radius:99px;transition:width .3s}
+.hero .track b{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.85}
+.hero .ticks{display:flex;justify-content:space-between;font-size:.8rem;color:rgba(255,255,255,.75);margin-top:6px;font-family:var(--f-num)}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;align-content:center}
+.hero-stats .label{color:rgba(255,255,255,.7)}
+.hero-stats .v{font-family:var(--f-num);font-size:1.3rem;color:#fff}
+.hero .pill{background:rgba(255,255,255,.14);color:#fff}
+@media (max-width:760px){.hero{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hero{background:#1d3a3e}}
+:root[data-theme="dark"] .hero{background:#1d3a3e}
+
+/* stacked bar */
+.sbar{display:flex;height:26px;border-radius:7px;overflow:hidden;background:var(--sunk);position:relative}
+.sbar span{display:block;height:100%}
+.sbar-wrap{position:relative;padding-top:20px}
+.sbar-need{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--ink)}
+.sbar-need em{position:absolute;top:0;left:6px;font-style:normal;font-size:.75rem;white-space:nowrap;color:var(--ink)}
+.sbar-need.flip em{left:auto;right:6px}
+.keys{display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.keys div{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center}
+.keys i{width:12px;height:12px;border-radius:3px}
+.keys .tot{border-top:1px solid var(--line);padding-top:8px;font-weight:600;grid-template-columns:minmax(0,1fr) auto}
+
+/* actions */
+.actions{display:flex;flex-direction:column}
+.act{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
+.act:last-child{border-bottom:0}
+.act input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--vault)}
+.act strong{font-weight:600}
+.act p{margin:2px 0 0;font-size:.86rem;color:var(--muted)}
+.act .amt{font-family:var(--f-num);font-size:.92rem;white-space:nowrap;color:var(--good)}
+.act a{color:var(--vault);font-size:.85rem}
+.act.done strong{text-decoration:line-through;color:var(--muted)}
+
+/* editable list rows */
 .rows{display:flex;flex-direction:column;gap:8px}
-.row{display:grid;grid-template-columns:minmax(0,1fr) 130px auto 32px;gap:8px;align-items:center}
-.row.two{grid-template-columns:minmax(0,1fr) 130px 32px}
-.row input.amt{text-align:right;font-family:var(--f-num)}
-.row .del{padding:4px;width:32px;height:32px;border-color:transparent;background:transparent;color:var(--muted);font-size:1.1rem;line-height:1}
-.row .del:hover{color:var(--bad)}
-.row select{padding:7px 6px}
+.rowhead,.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rowhead{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding-inline:2px}
+.row{padding:8px;border-radius:8px;background:var(--sunk)}
+.row.flag{box-shadow:inset 3px 0 0 var(--accent)}
+.row.off{opacity:.6}
+.c-name{flex:1 1 180px;min-width:0}
+.c-num{flex:0 0 112px;text-align:right;font-family:var(--f-num)}
+.c-sm{flex:0 0 80px;text-align:right;font-family:var(--f-num)}
+.c-sel{flex:0 0 124px}
+.c-date{flex:0 0 150px}
+.c-del{flex:0 0 32px;width:32px;height:32px;padding:0;border-color:transparent;background:transparent;color:var(--muted);font-size:1.15rem;line-height:1}
+.c-del:hover{color:var(--bad);border-color:transparent}
+.rowhead .c-name,.rowhead .c-num,.rowhead .c-sm,.rowhead .c-sel,.rowhead .c-date{background:none;border:0;padding:0}
+.rowhead .c-del{visibility:hidden}
+.row .hint{flex:1 1 100%;font-size:.82rem;color:var(--warn);padding-left:2px}
+@media (max-width:600px){.rowhead{display:none} .c-num,.c-sel,.c-date{flex:1 1 120px} .c-sm{flex:1 1 80px}}
 .add{align-self:flex-start;background:transparent;border-style:dashed;color:var(--muted)}
 .add:hover{color:var(--ink)}
-.total{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-weight:600}
+.total{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-weight:600;gap:12px;flex-wrap:wrap}
 
-/* fields */
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field label{font-size:.82rem;color:var(--muted)}
-.field input{font-family:var(--f-num);text-align:right}
-@media (max-width:460px){.fields{grid-template-columns:minmax(0,1fr)} .row{grid-template-columns:minmax(0,1fr) 104px 32px} .row .cat{grid-column:1/2} .row.two{grid-template-columns:minmax(0,1fr) 104px 32px}}
+.field input[type=number]{font-family:var(--f-num);text-align:right}
+@media (max-width:460px){.fields{grid-template-columns:minmax(0,1fr)}}
 
-/* status pills + meters */
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--sunk)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--sunk);white-space:nowrap}
 .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .ok{color:var(--good)} .mid{color:var(--warn)} .low{color:var(--bad)}
-.meter{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
-.meter i{display:block;height:100%;border-radius:99px;background:var(--vault);transition:width .3s}
-@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
 
-/* health checks */
-.checks{display:flex;flex-direction:column}
-.check{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
-.check:last-child{border-bottom:0}
-.check p{margin:0;font-size:.86rem;color:var(--muted);grid-column:1/-1}
+/* idle money options */
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+.opt{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.opt h3{font-size:1rem}
+.opt dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0;font-size:.85rem}
+.opt dt{color:var(--muted)} .opt dd{margin:0;text-align:right}
+.opt .gain{font-family:var(--f-num);font-size:1.2rem;color:var(--good)}
+.opt p{margin:0;font-size:.85rem;color:var(--muted)}
+.opt.best{border-color:var(--vault);box-shadow:inset 0 0 0 1px var(--vault)}
+.compare{display:flex;flex-direction:column;gap:10px}
+.cmp-row{display:grid;grid-template-columns:150px minmax(0,1fr) 90px;gap:10px;align-items:center;font-size:.88rem}
+.cmp-row .b{height:18px;border-radius:5px;background:var(--sunk);overflow:hidden}
+.cmp-row .b i{display:block;height:100%;background:var(--vault);border-radius:5px}
+.cmp-row:first-child .b i{background:var(--muted)}
+@media (max-width:460px){.cmp-row{grid-template-columns:100px minmax(0,1fr) 72px}}
 
-/* score dial */
-.score{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.score svg{flex:none}
-.score-txt{min-width:0;flex:1}
-.score-txt p{margin:6px 0 0;color:var(--muted);max-width:48ch}
-
-/* goals */
-.goal{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
-.goal-top{display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:8px}
-.goal-top input{font-family:var(--f-display);font-weight:700;font-size:1.05rem;border-color:transparent;padding-left:0;background:transparent}
-.goal-top input:hover,.goal-top input:focus{border-color:var(--line);padding-left:10px}
-.goal-out{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--sunk);border-radius:8px;padding:10px 12px;font-size:.9rem}
-.goal-out b{font-family:var(--f-num);font-weight:500}
-.goals{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px}
-
-/* charts */
-.chart{width:100%;overflow-x:auto}
-.chart svg{display:block;width:100%;height:auto;min-width:300px}
-.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{width:12px;height:3px;border-radius:2px;display:inline-block}
-
-.split{display:flex;flex-direction:column;gap:12px}
-.split-row{display:grid;grid-template-columns:90px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:.9rem}
-.split-row .bars{position:relative;height:22px;background:var(--sunk);border-radius:6px}
-.split-row .bars i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--vault)}
-.split-row .bars em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--accent)}
+/* IOU */
+.iou{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:var(--r);padding:14px;background:var(--surface)}
+.iou-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.iou-top .who{font-family:var(--f-display);font-weight:700;font-size:1.05rem;flex:1 1 140px;border-color:transparent;padding-left:0;background:transparent}
+.iou-top .who:hover,.iou-top .who:focus{border-color:var(--line);padding-left:10px}
+.iou .fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:600px){.iou .fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.iou-btns{display:flex;gap:8px;flex-wrap:wrap}
+.draft{display:flex;flex-direction:column;gap:8px;background:var(--sunk);border-radius:8px;padding:12px}
+.tone{display:flex;gap:4px;flex-wrap:wrap}
+.tone button{padding:4px 12px;font-size:.85rem;border-radius:99px}
+.tone button[aria-pressed="true"]{background:var(--vault);color:var(--surface);border-color:var(--vault)}
+.draft textarea{width:100%;min-height:118px;resize:vertical;line-height:1.45;font-size:.92rem}
+.draft small{color:var(--muted)}
+.ious{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+.paid-list{font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 
 footer{border-top:1px solid var(--line);padding-block:20px 32px;font-size:.82rem;color:var(--muted)}
 footer p{margin:0 0 6px;max-width:80ch}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <header>
@@ -158,478 +203,588 @@ footer p{margin:0 0 6px;max-width:80ch}
       </div>
       <div><b>Digitlocka</b><span>Money Planner</span></div>
     </div>
-    <label class="sr" for="currency">Currency</label>
-    <select id="currency" aria-label="Currency">
-      <option value="INR">₹ INR</option>
-      <option value="SGD">S$ SGD</option>
-      <option value="AUD">A$ AUD</option>
-      <option value="USD">$ USD</option>
-      <option value="GBP">£ GBP</option>
-      <option value="AED">AED</option>
+    <label class="sr" for="currency">Currency symbol</label>
+    <select id="currency" aria-label="Currency symbol">
+      <option value="$">$</option><option value="€">€</option><option value="£">£</option><option value="₹">₹</option>
+      <option value="¥">¥</option><option value="₩">₩</option><option value="₱">₱</option><option value="Rp ">Rp</option>
+      <option value="RM ">RM</option><option value="฿">฿</option><option value="AED ">AED</option><option value="R ">R</option><option value="">none</option>
     </select>
     <button id="resetBtn" class="btn-ghost" type="button">Start fresh</button>
   </div>
   <div class="wrap">
     <nav class="tabs" aria-label="Planner sections">
-      <a href="#overview" data-tab="overview">Overview</a>
-      <a href="#budget" data-tab="budget">Budget</a>
-      <a href="#networth" data-tab="networth">Net worth</a>
-      <a href="#goals" data-tab="goals">Goals</a>
-      <a href="#retirement" data-tab="retirement">Retirement</a>
+      <a href="#plan" data-tab="plan">My plan</a>
+      <a href="#subscriptions" data-tab="subscriptions">Subscriptions <span class="badge" id="tb-subs" hidden></span></a>
+      <a href="#spending" data-tab="spending">Spending</a>
+      <a href="#idle-money" data-tab="idle-money">Idle money <span class="badge" id="tb-idle" hidden></span></a>
+      <a href="#owed" data-tab="owed">Owed to me <span class="badge" id="tb-owed" hidden></span></a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
   <div class="notice" id="sampleNotice" hidden>
-    <span>You're looking at example figures for a sample household. Change any number and the plan updates instantly.</span>
-    <button type="button" id="clearSample">Clear and enter mine</button>
+    <span>These are example figures for a sample person. Change anything and the plan updates instantly.</span>
+    <button type="button" class="btn-sm" id="clearSample">Clear and enter mine</button>
   </div>
   <div class="notice" id="confirmReset" hidden>
     <span>Clear every figure and start with a blank plan?</span>
-    <button type="button" class="btn-primary" id="confirmYes">Yes, clear it</button>
-    <button type="button" id="confirmNo">Keep my plan</button>
+    <button type="button" class="btn-primary btn-sm" id="confirmYes">Yes, clear it</button>
+    <button type="button" class="btn-sm" id="confirmNo">Keep my plan</button>
   </div>
 
-  <!-- OVERVIEW -->
-  <section data-panel="overview">
-    <div class="panel-head">
-      <div><h2>Your money at a glance</h2><p>Everything here is worked out from the other tabs. Fix the weakest check first.</p></div>
+  <!-- PLAN -->
+  <section data-panel="plan">
+    <div class="hero">
+      <div>
+        <span class="label" style="color:rgba(255,255,255,.7)">Savings goal</span>
+        <h2 id="h-title"></h2>
+        <p class="sub" id="h-sub"></p>
+        <div class="track" aria-hidden="true"><i id="h-bar"></i><b id="h-pace"></b></div>
+        <div class="ticks"><span id="h-saved"></span><span id="h-target"></span></div>
+      </div>
+      <div class="hero-stats">
+        <div><span class="label">Need per month</span><div class="v" id="h-need"></div></div>
+        <div><span class="label">Saving now</span><div class="v" id="h-now"></div></div>
+        <div><span class="label">Found for you</span><div class="v" id="h-found"></div></div>
+        <div><span class="label">Status</span><div style="margin-top:4px" id="h-status"></div></div>
+      </div>
     </div>
-    <div class="figs">
-      <div class="fig"><span class="label">Net worth</span><span class="v" id="o-nw"></span><span class="s" id="o-nw-s"></span></div>
-      <div class="fig"><span class="label">Monthly surplus</span><span class="v" id="o-surplus"></span><span class="s" id="o-surplus-s"></span></div>
-      <div class="fig"><span class="label">Goals funded</span><span class="v" id="o-goals"></span><span class="s" id="o-goals-s"></span></div>
-      <div class="fig"><span class="label">Retirement readiness</span><span class="v" id="o-ret"></span><span class="s" id="o-ret-s"></span></div>
-    </div>
+
     <div class="grid2">
-      <div class="card">
-        <div class="score">
-          <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--sunk)" stroke-width="12"/>
-            <circle id="dial" cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
-            <text id="dialTxt" x="60" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="28" fill="var(--ink)">0</text>
-          </svg>
-          <div class="score-txt">
-            <span class="label">Money health score</span>
-            <h3 id="scoreHead" style="margin-top:4px"></h3>
-            <p id="scoreTxt"></p>
-          </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><h3>Your action plan</h3><span class="muted" style="font-size:.82rem" id="act-count"></span></div>
+          <div class="actions" id="actions"></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-head"><h3>Health checks</h3><span class="muted" style="font-size:.82rem">20 points each</span></div>
-        <div class="checks" id="checks"></div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><h3>Where each month's saving comes from</h3></div>
+          <div class="sbar-wrap"><div class="sbar" id="sbar"></div><div class="sbar-need" id="sbarNeed"><em></em></div></div>
+          <div class="keys" id="keys"></div>
+        </div>
+        <div class="card">
+          <h3>Goal settings</h3>
+          <div class="fields" id="goalFields"></div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- BUDGET -->
-  <section data-panel="budget" hidden>
+  <!-- SUBSCRIPTIONS -->
+  <section data-panel="subscriptions" hidden>
     <div class="panel-head">
-      <div><h2>Monthly budget</h2><p>List take-home income and regular spending. Tag each expense as a need, a want, or savings and investments (SIPs, PPF, EPF top-ups, RDs).</p></div>
+      <div><h2>Subscriptions</h2><p>List everything that charges you on repeat: streaming, apps, gym, cloud storage, memberships, boxes. Be honest about how often you use each one. Anything you rarely use gets flagged.</p></div>
     </div>
     <div class="figs">
-      <div class="fig"><span class="label">Take-home income</span><span class="v" id="b-in"></span></div>
-      <div class="fig"><span class="label">Spending</span><span class="v" id="b-out"></span></div>
-      <div class="fig"><span class="label">Savings rate</span><span class="v" id="b-rate"></span><span class="s">savings tagged + unspent surplus</span></div>
-      <div class="fig"><span class="label">Unallocated</span><span class="v" id="b-left"></span><span class="s" id="b-left-s"></span></div>
+      <div class="fig"><span class="label">You pay</span><span class="v" id="s-total"></span><span class="s" id="s-total-s"></span></div>
+      <div class="fig"><span class="label">Rarely or never used</span><span class="v" id="s-waste"></span><span class="s" id="s-waste-s"></span></div>
+      <div class="fig"><span class="label">Cancelling saves</span><span class="v" id="s-cut" style="color:var(--good)"></span><span class="s" id="s-cut-s"></span></div>
     </div>
-    <div class="grid2">
+    <div class="card">
+      <div class="rowhead"><span class="c-name">Service</span><span class="c-num">Cost</span><span class="c-sel">Billed</span><span class="c-sel">I use it</span><span class="c-sel">Decision</span><span class="c-del"></span></div>
+      <div class="rows" id="subsRows"></div>
+      <button class="add" type="button" data-add="subs">+ Add subscription</button>
+    </div>
+  </section>
+
+  <!-- SPENDING -->
+  <section data-panel="spending" hidden>
+    <div class="panel-head">
+      <div><h2>Monthly spending</h2><p>Your usual month, by category. Essentials are bills you can't easily change. Flexible spending is where the savings hide: set a target you can actually live with.</p></div>
+      <button type="button" class="btn-primary" id="suggestCuts">Suggest targets</button>
+    </div>
+    <div class="figs">
+      <div class="fig"><span class="label">Essentials</span><span class="v" id="p-ess"></span></div>
+      <div class="fig"><span class="label">Flexible</span><span class="v" id="p-flex"></span><span class="s" id="p-flex-s"></span></div>
+      <div class="fig"><span class="label">Your targets free up</span><span class="v" id="p-cut" style="color:var(--good)"></span><span class="s" id="p-cut-s"></span></div>
+    </div>
+    <div class="card">
+      <div class="rowhead"><span class="c-name">Category</span><span class="c-sel">Type</span><span class="c-num">Now / month</span><span class="c-num">Target</span><span class="c-del"></span></div>
+      <div class="rows" id="spendRows"></div>
+      <button class="add" type="button" data-add="spend">+ Add category</button>
+      <div class="total"><span>Total spending (excluding subscriptions)</span><span class="num" id="spendTotal"></span></div>
+    </div>
+  </section>
+
+  <!-- IDLE MONEY -->
+  <section data-panel="idle-money" hidden>
+    <div class="panel-head">
+      <div><h2>Idle money</h2><p>Cash sitting in a low-interest account loses value to inflation every year. Keep a safety net you can reach fast, then give the rest a job.</p></div>
+    </div>
+    <div class="figs">
+      <div class="fig"><span class="label">Cash earning under <span id="i-th"></span></span><span class="v" id="i-idle"></span><span class="s" id="i-idle-s"></span></div>
+      <div class="fig"><span class="label">Safety net to keep</span><span class="v" id="i-ef"></span><span class="s">6 months of essentials + subscriptions</span></div>
+      <div class="fig"><span class="label">You could earn extra</span><span class="v" id="i-gain" style="color:var(--good)"></span><span class="s">per year, moving idle cash to a higher-rate account</span></div>
+    </div>
+    <div class="stack">
       <div class="card">
-        <div class="card-head"><h3>Income</h3><span class="label">per month</span></div>
-        <div class="rows" id="incomeRows"></div>
-        <button class="add" type="button" data-add="income">+ Add income</button>
-        <div class="total"><span>Total</span><span class="num" id="incomeTotal"></span></div>
+        <div class="rowhead"><span class="c-name">Account</span><span class="c-sel">Type</span><span class="c-num">Balance</span><span class="c-sm">Rate %</span><span class="c-del"></span></div>
+        <div class="rows" id="acctRows"></div>
+        <button class="add" type="button" data-add="accts">+ Add account</button>
+        <div class="total"><span>Total</span><span class="num" id="acctTotal"></span></div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>Expenses and savings</h3><span class="label">per month</span></div>
-        <div class="rows" id="expenseRows"></div>
-        <button class="add" type="button" data-add="expense">+ Add line</button>
-        <div class="total"><span>Total</span><span class="num" id="expenseTotal"></span></div>
+        <div class="card-head"><h3>What your idle cash earns in a year</h3></div>
+        <div class="compare" id="compare"></div>
+        <p class="muted" style="margin:0;font-size:.82rem">Rates are example assumptions. Change them below to match what banks and funds offer where you live.</p>
       </div>
     </div>
     <div class="card" style="margin-top:20px">
-      <div class="card-head"><h3>How your money splits</h3><span class="muted" style="font-size:.82rem">orange marker is the 50 / 30 / 20 guide</span></div>
-      <div class="split" id="split"></div>
+      <div class="card-head"><h3>Options to consider</h3><span class="muted" style="font-size:.82rem">match the option to when you need the money</span></div>
+      <div class="opts" id="opts"></div>
+      <div class="fields" id="rateFields" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
     </div>
   </section>
 
-  <!-- NET WORTH -->
-  <section data-panel="networth" hidden>
+  <!-- OWED -->
+  <section data-panel="owed" hidden>
     <div class="panel-head">
-      <div><h2>Net worth</h2><p>What you own minus what you owe. Mark which assets you could get to within a week; those count toward your emergency fund.</p></div>
+      <div><h2>Owed to me</h2><p>Money you've lent or paid on someone's behalf. Pick a tone, and the planner drafts a reminder that keeps the friendship and still gets you paid.</p></div>
+      <button class="btn-primary" type="button" data-add="ious">+ Add someone</button>
     </div>
     <div class="figs">
-      <div class="fig"><span class="label">Assets</span><span class="v" id="n-a"></span></div>
-      <div class="fig"><span class="label">Liabilities</span><span class="v" id="n-l"></span></div>
-      <div class="fig"><span class="label">Net worth</span><span class="v" id="n-nw"></span></div>
-      <div class="fig"><span class="label">Emergency cover</span><span class="v" id="n-ef"></span><span class="s">months of spending in liquid assets</span></div>
+      <div class="fig"><span class="label">Waiting to come back</span><span class="v" id="o-open"></span><span class="s" id="o-open-s"></span></div>
+      <div class="fig"><span class="label">Overdue</span><span class="v" id="o-late"></span><span class="s" id="o-late-s"></span></div>
+      <div class="fig"><span class="label">Collected so far</span><span class="v" id="o-paid" style="color:var(--good)"></span><span class="s" id="o-paid-s"></span></div>
     </div>
-    <div class="grid2">
-      <div class="card">
-        <div class="card-head"><h3>Assets</h3><span class="label">liquid?</span></div>
-        <div class="rows" id="assetRows"></div>
-        <button class="add" type="button" data-add="asset">+ Add asset</button>
-        <div class="total"><span>Total</span><span class="num" id="assetTotal"></span></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>Liabilities</h3><span class="label">outstanding</span></div>
-        <div class="rows" id="liabRows"></div>
-        <button class="add" type="button" data-add="liab">+ Add loan or card</button>
-        <div class="total"><span>Total</span><span class="num" id="liabTotal"></span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- GOALS -->
-  <section data-panel="goals" hidden>
-    <div class="panel-head">
-      <div><h2>Life goals</h2><p>Price each goal in today's money. The planner adds inflation, credits what you've already set aside, and tells you the monthly SIP that gets you there.</p></div>
-      <button class="btn-primary" type="button" data-add="goal">+ Add goal</button>
-    </div>
-    <div class="figs">
-      <div class="fig"><span class="label">Total SIP needed</span><span class="v" id="g-sip"></span><span class="s">per month, across all goals</span></div>
-      <div class="fig"><span class="label">Available to invest</span><span class="v" id="g-avail"></span><span class="s">savings + surplus from budget</span></div>
-      <div class="fig"><span class="label">Shortfall</span><span class="v" id="g-gap"></span><span class="s" id="g-gap-s"></span></div>
-    </div>
-    <div class="goals" id="goalList"></div>
-  </section>
-
-  <!-- RETIREMENT -->
-  <section data-panel="retirement" hidden>
-    <div class="panel-head">
-      <div><h2>Retirement</h2><p>How big a corpus you need to keep today's lifestyle, and whether your current investing gets you there.</p></div>
-    </div>
-    <div class="figs">
-      <div class="fig"><span class="label">Corpus needed</span><span class="v" id="r-need"></span><span class="s" id="r-need-s"></span></div>
-      <div class="fig"><span class="label">You're on track for</span><span class="v" id="r-have"></span><span class="s" id="r-have-s"></span></div>
-      <div class="fig"><span class="label">Extra SIP to close gap</span><span class="v" id="r-extra"></span><span class="s">per month, starting now</span></div>
-      <div class="fig"><span class="label">Money lasts until</span><span class="v" id="r-last"></span><span class="s" id="r-last-s"></span></div>
-    </div>
-    <div class="grid2">
-      <div class="card">
-        <h3>Your assumptions</h3>
-        <div class="fields" id="retFields"></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>Corpus over your lifetime</h3></div>
-        <div class="legend">
-          <span><i style="background:var(--chart-a)"></i>Current plan</span>
-          <span><i style="background:var(--chart-b)"></i>With extra SIP</span>
-          <span><i style="background:var(--chart-c)"></i>Retirement age</span>
-        </div>
-        <div class="chart" id="retChart"></div>
-      </div>
-    </div>
+    <div class="ious" id="iouList"></div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
     <p>Your figures stay on this device. Nothing is sent to a server.</p>
-    <p>Digitlocka Money Planner is an educational tool. Projections use the return and inflation rates you enter and are not guaranteed. This is not investment, tax or legal advice; speak to a registered adviser before acting.</p>
+    <p>Digitlocka Money Planner is an educational tool. Interest and return figures are assumptions you can change, not quotes or guarantees, and investments can lose value. This is not financial, tax or legal advice; check products available in your country and speak to a licensed adviser before investing.</p>
   </div>
 </footer>
 
 <script>
 (function(){
 "use strict";
-const KEY = "digitlocka-planner-v1";
-const uid = () => Math.random().toString(36).slice(2,9);
+const KEY="digitlocka-planner-v2";
+const uid=()=>Math.random().toString(36).slice(2,9);
+const DAY=864e5;
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const addDays=(d,n)=>new Date(d.getTime()+n*DAY);
+const addMonths=(d,n)=>{const x=new Date(d);x.setMonth(x.getMonth()+n);return x;};
+const parse=s=>{const d=new Date(s+"T00:00:00");return isNaN(d)?today():d;};
+const nice=d=>d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
 
-const SAMPLE = () => ({
-  sample:true, currency:"INR",
-  income:[{id:uid(),name:"Salary (take-home)",amt:185000},{id:uid(),name:"Rental income",amt:22000}],
-  expense:[
-    {id:uid(),name:"Home loan EMI",amt:48000,cat:"need"},
-    {id:uid(),name:"Groceries and household",amt:22000,cat:"need"},
-    {id:uid(),name:"Utilities, phone, internet",amt:7500,cat:"need"},
-    {id:uid(),name:"School fees (monthly avg)",amt:15000,cat:"need"},
-    {id:uid(),name:"Insurance premiums",amt:6000,cat:"need"},
-    {id:uid(),name:"Dining, OTT, shopping",amt:24000,cat:"want"},
-    {id:uid(),name:"Travel fund",amt:10000,cat:"want"},
-    {id:uid(),name:"Equity mutual fund SIP",amt:30000,cat:"save"},
-    {id:uid(),name:"PPF",amt:8000,cat:"save"}
-  ],
-  asset:[
-    {id:uid(),name:"Savings account",amt:320000,liquid:true},
-    {id:uid(),name:"Liquid fund / FD",amt:450000,liquid:true},
-    {id:uid(),name:"Mutual funds",amt:2400000,liquid:false},
-    {id:uid(),name:"EPF + PPF",amt:1850000,liquid:false},
-    {id:uid(),name:"Home (market value)",amt:9500000,liquid:false},
-    {id:uid(),name:"Gold",amt:600000,liquid:false}
-  ],
-  liab:[{id:uid(),name:"Home loan",amt:4200000},{id:uid(),name:"Car loan",amt:380000},{id:uid(),name:"Credit card dues",amt:45000}],
-  goals:[
-    {id:uid(),name:"Child's higher education",cost:2500000,years:12,saved:300000,ret:11,infl:8},
-    {id:uid(),name:"Upgrade car",cost:1200000,years:4,saved:150000,ret:8,infl:5},
-    {id:uid(),name:"Family trip to Japan",cost:600000,years:2,saved:100000,ret:7,infl:6}
-  ],
-  ret:{age:38,retireAge:58,lifeAge:85,monthlyExp:95000,corpus:1850000,sip:12000,preRet:10,postRet:7,infl:6}
-});
-const BLANK = (cur) => ({
-  sample:false, currency:cur||"INR",
-  income:[{id:uid(),name:"Salary (take-home)",amt:0}],
-  expense:[{id:uid(),name:"Rent or EMI",amt:0,cat:"need"},{id:uid(),name:"Groceries",amt:0,cat:"need"},{id:uid(),name:"Investments / SIP",amt:0,cat:"save"}],
-  asset:[{id:uid(),name:"Savings account",amt:0,liquid:true}],
-  liab:[],
-  goals:[{id:uid(),name:"Emergency fund top-up",cost:0,years:1,saved:0,ret:6,infl:5}],
-  ret:{age:35,retireAge:60,lifeAge:85,monthlyExp:0,corpus:0,sip:0,preRet:10,postRet:7,infl:6}
-});
+function SAMPLE(){
+  const t=today();
+  return {
+    sample:true, cur:"$",
+    goal:{name:"Save 100K",target:100000,saved:22000,deadline:iso(addMonths(t,10)),income:15000},
+    rates:{threshold:2.5,hys:4,term:4.5,fund:7},
+    subs:[
+      {id:uid(),name:"Video streaming",cost:18,cycle:"m",use:"often",act:"keep"},
+      {id:uid(),name:"Second streaming service",cost:15,cycle:"m",use:"rarely",act:"cancel"},
+      {id:uid(),name:"Music app",cost:11,cycle:"m",use:"often",act:"keep"},
+      {id:uid(),name:"Gym membership",cost:65,cycle:"m",use:"rarely",act:"cancel"},
+      {id:uid(),name:"News subscription",cost:180,cycle:"y",use:"never",act:"cancel"},
+      {id:uid(),name:"Meditation app",cost:70,cycle:"y",use:"never",act:"keep"},
+      {id:uid(),name:"Cloud storage",cost:3,cycle:"m",use:"often",act:"keep"},
+      {id:uid(),name:"Meal-kit box",cost:80,cycle:"m",use:"sometimes",act:"keep"},
+      {id:uid(),name:"Online shopping membership",cost:139,cycle:"y",use:"sometimes",act:"keep"}
+    ],
+    spend:[
+      {id:uid(),name:"Rent or mortgage",ess:true,now:3200,target:3200},
+      {id:uid(),name:"Groceries",ess:true,now:900,target:900},
+      {id:uid(),name:"Utilities and phone",ess:true,now:320,target:320},
+      {id:uid(),name:"Transport",ess:true,now:480,target:480},
+      {id:uid(),name:"Insurance",ess:true,now:300,target:300},
+      {id:uid(),name:"Online shopping",ess:false,now:1150,target:750},
+      {id:uid(),name:"Eating out and delivery",ess:false,now:950,target:700},
+      {id:uid(),name:"Clothes",ess:false,now:500,target:350},
+      {id:uid(),name:"Entertainment and nights out",ess:false,now:400,target:300},
+      {id:uid(),name:"Travel",ess:false,now:600,target:600},
+      {id:uid(),name:"Gifts and misc",ess:false,now:350,target:300}
+    ],
+    accts:[
+      {id:uid(),name:"Everyday account",kind:"everyday",bal:9500,rate:0},
+      {id:uid(),name:"Bank savings account",kind:"savings",bal:56000,rate:1},
+      {id:uid(),name:"Investment fund",kind:"invest",bal:15000,rate:7}
+    ],
+    ious:[
+      {id:uid(),who:"Sam",amt:1200,what:"concert tickets and dinner",lent:iso(addDays(t,-75)),due:iso(addDays(t,-30)),paid:false,tone:"clear"},
+      {id:uid(),who:"Priya",amt:850,what:"her share of the holiday villa",lent:iso(addDays(t,-40)),due:iso(addDays(t,-5)),paid:false,tone:"gentle"},
+      {id:uid(),who:"Alex",amt:400,what:"the loan for the car repair",lent:iso(addDays(t,-12)),due:iso(addDays(t,20)),paid:false,tone:"gentle"},
+      {id:uid(),who:"Jordan",amt:300,what:"birthday gift split",lent:iso(addDays(t,-60)),due:iso(addDays(t,-40)),paid:true,tone:"gentle"}
+    ],
+    done:{}
+  };
+}
+function BLANK(cur){
+  const t=today();
+  return {sample:false,cur:cur??"$",
+    goal:{name:"My savings goal",target:0,saved:0,deadline:iso(addMonths(t,12)),income:0},
+    rates:{threshold:2.5,hys:4,term:4.5,fund:7},
+    subs:[{id:uid(),name:"",cost:0,cycle:"m",use:"often",act:"keep"}],
+    spend:[{id:uid(),name:"Rent or mortgage",ess:true,now:0,target:0},{id:uid(),name:"Groceries",ess:true,now:0,target:0},{id:uid(),name:"Shopping",ess:false,now:0,target:0},{id:uid(),name:"Eating out",ess:false,now:0,target:0}],
+    accts:[{id:uid(),name:"Everyday account",kind:"everyday",bal:0,rate:0},{id:uid(),name:"Savings account",kind:"savings",bal:0,rate:1}],
+    ious:[],done:{}};
+}
 
 let S;
-try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) { S = null; }
-if(!S || !S.ret) S = SAMPLE();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+try{S=JSON.parse(localStorage.getItem(KEY));}catch(e){S=null;}
+if(!S||!S.goal) S=SAMPLE();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 
 /* ---------- formatting ---------- */
-const LOCALE = {INR:"en-IN",SGD:"en-SG",AUD:"en-AU",USD:"en-US",GBP:"en-GB",AED:"en-AE"};
-const SYM = {INR:"₹",SGD:"S$",AUD:"A$",USD:"$",GBP:"£",AED:"AED "};
-function money(v, compact){
-  const c = S.currency, s = SYM[c], neg = v < 0; v = Math.abs(Math.round(v||0));
-  let out;
-  if(compact && c==="INR" && v >= 1e5){
-    out = v >= 1e7 ? (v/1e7).toFixed(v>=1e9?0:2).replace(/\.?0+$/,"")+" Cr" : (v/1e5).toFixed(2).replace(/\.?0+$/,"")+" L";
-  } else if(compact && c!=="INR" && v >= 1e4){
-    out = v >= 1e6 ? (v/1e6).toFixed(2).replace(/\.?0+$/,"")+"M" : (v/1e3).toFixed(1).replace(/\.0$/,"")+"K";
-  } else out = v.toLocaleString(LOCALE[c]);
-  return (neg?"−":"") + s + out;
+function money(v,compact){
+  const neg=v<0; v=Math.abs(v||0); let out;
+  if(compact && v>=1e6) out=(v/1e6).toFixed(2).replace(/\.?0+$/,"")+"M";
+  else if(compact && v>=1e4) out=(v/1e3).toFixed(1).replace(/\.0$/,"")+"K";
+  else out=Math.round(v).toLocaleString("en-US");
+  return (neg?"−":"")+S.cur+out;
 }
-const pct = v => (isFinite(v)? Math.round(v) : 0) + "%";
-const $ = id => document.getElementById(id);
-const sum = (arr,k="amt") => arr.reduce((a,b)=>a+(+b[k]||0),0);
+const pct=v=>(isFinite(v)?Math.round(v):0)+"%";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const monthly=s=>s.cycle==="y"?(+s.cost||0)/12:(+s.cost||0);
 
-/* ---------- finance maths ---------- */
-// Future value of a monthly SIP at annual rate r (%) for n months, contributions at month end
-function fvSip(p, r, months){ const i=r/1200; return i===0 ? p*months : p*((Math.pow(1+i,months)-1)/i); }
-// Monthly SIP needed to build `target` in `months`
-function sipFor(target, r, months){ if(target<=0) return 0; if(months<=0) return target; const i=r/1200; return i===0 ? target/months : target*i/(Math.pow(1+i,months)-1); }
+/* ---------- core model ---------- */
+function model(){
+  const g=S.goal, t=today(), dl=parse(g.deadline);
+  const monthsLeft=Math.max(0.5,(dl-t)/(DAY*30.44));
+  const remaining=Math.max(0,(+g.target||0)-(+g.saved||0));
+  const need=remaining/monthsLeft;
 
-function goalCalc(g){
-  const yrs=Math.max(0,+g.years||0), n=Math.round(yrs*12);
-  const fv=(+g.cost||0)*Math.pow(1+(+g.infl||0)/100,yrs);
-  const savedFv=(+g.saved||0)*Math.pow(1+(+g.ret||0)/100,yrs);
-  const gap=Math.max(0,fv-savedFv);
-  return {fv, savedFv, gap, sip:sipFor(gap,+g.ret||0,n), funded: fv>0? Math.min(100,savedFv/fv*100):100};
+  const subsAll=S.subs.reduce((a,s)=>a+monthly(s),0);
+  const subsCut=S.subs.filter(s=>s.act==="cancel").reduce((a,s)=>a+monthly(s),0);
+  const subsFlag=S.subs.filter(s=>(s.use==="rarely"||s.use==="never"));
+  const subsFlagOpen=subsFlag.filter(s=>s.act!=="cancel");
+  const subsWaste=subsFlag.reduce((a,s)=>a+monthly(s),0);
+
+  const ess=S.spend.filter(x=>x.ess).reduce((a,x)=>a+(+x.now||0),0);
+  const flex=S.spend.filter(x=>!x.ess).reduce((a,x)=>a+(+x.now||0),0);
+  const spendCut=S.spend.reduce((a,x)=>a+Math.max(0,(+x.now||0)-(+x.target||0)),0);
+  const topFlex=S.spend.filter(x=>!x.ess).slice().sort((a,b)=>b.now-a.now)[0];
+
+  const saveNow=(+g.income||0)-ess-flex-subsAll;
+
+  const R=S.rates, th=+R.threshold||0;
+  const buffer=ess+flex+subsAll; // keep one month of spending in everyday account
+  let idle=0, idleEarn=0;
+  S.accts.forEach(a=>{
+    if(a.kind==="invest"||a.kind==="term") return;
+    if((+a.rate||0)>=th) return;
+    const usable=Math.max(0,(+a.bal||0)-(a.kind==="everyday"?buffer:0));
+    idle+=usable; idleEarn+=usable*(+a.rate||0)/100;
+  });
+  const idleRate=idle>0?idleEarn/idle*100:0;
+  const ef=6*(ess+subsAll-subsCut);
+  const hysGainYr=Math.max(0,idle*((+R.hys||0)-idleRate)/100);
+  const interestM=hysGainYr/12;
+
+  const open=S.ious.filter(i=>!i.paid);
+  const owed=open.reduce((a,i)=>a+(+i.amt||0),0);
+  const late=open.filter(i=>parse(i.due)<t);
+  const iouM=owed/monthsLeft;
+
+  const found=subsCut+spendCut+interestM+iouM;
+  const newRate=Math.max(0,saveNow)+found;
+  const gap=need-newRate;
+  const projected=(+g.saved||0)+newRate*monthsLeft;
+  const finishMonths=newRate>0?remaining/newRate:Infinity;
+
+  // expected saved by now, linear from start (assume plan spans 12 months to deadline)
+  const start=addMonths(dl,-12), span=dl-start, el=Math.min(span,Math.max(0,t-start));
+  const paceFrac=span>0?el/span:0;
+
+  return {g,t,dl,monthsLeft,remaining,need,subsAll,subsCut,subsFlag,subsFlagOpen,subsWaste,ess,flex,spendCut,topFlex,saveNow,
+          idle,idleRate,ef,hysGainYr,interestM,open,owed,late,iouM,found,newRate,gap,projected,finishMonths,paceFrac,R};
 }
 
-function retCalc(r, extraSip){
-  const yrsTo=Math.max(0,r.retireAge-r.age), yrsIn=Math.max(1,r.lifeAge-r.retireAge);
-  const inf=r.infl/100, post=r.postRet/100;
-  const annualExpAtRet=r.monthlyExp*12*Math.pow(1+inf,yrsTo);
-  // Corpus needed: withdraw at start of each year, rising with inflation (growing annuity due)
-  let need;
-  if(Math.abs(post-inf)<1e-9) need=annualExpAtRet*yrsIn;
-  else need=annualExpAtRet*(1-Math.pow((1+inf)/(1+post),yrsIn))/(post-inf)*(1+post);
-  const sim = (sip) => {
-    const pts=[]; let bal=r.corpus, age=r.age, i=r.preRet/1200, exp=annualExpAtRet, lastsTo=null;
-    pts.push([age,bal]);
-    for(let y=0;y<yrsTo;y++){ for(let m=0;m<12;m++) bal=bal*(1+i)+sip; age++; pts.push([age,bal]); }
-    const atRet=bal;
-    for(let y=0;y<yrsIn+15 && age<100;y++){
-      bal-=exp; if(bal<0 && lastsTo===null){ lastsTo=age; bal=0; }
-      bal*=(1+post); exp*=(1+inf); age++; pts.push([age,Math.max(0,bal)]);
-      if(bal<=0 && lastsTo!==null && age>=r.lifeAge) break;
-    }
-    return {pts, atRet, lastsTo};
-  };
-  const base=sim(r.sip);
-  const gap=Math.max(0,need-base.atRet);
-  const extra=sipFor(gap,r.preRet,yrsTo*12);
-  const boosted=sim(r.sip+(extraSip!==undefined?extraSip:extra));
-  return {need, have:base.atRet, gap, extra, base, boosted, yrsTo, annualExpAtRet, ready: need>0? Math.min(100,base.atRet/need*100):100};
+/* ---------- reminder drafts ---------- */
+function draft(i){
+  const amt=money(+i.amt||0), what=i.what?` for ${i.what}`:"", by=nice(addDays(today(),7));
+  const when=i.lent?` back on ${nice(parse(i.lent))}`:"";
+  const who=i.who||"there";
+  if(i.tone==="gentle") return `Hi ${who}, hope you're doing well! Just a friendly nudge about the ${amt}${what}${when}. Whenever it suits you this week works for me. Thanks so much!`;
+  if(i.tone==="firm") return `Hi ${who}, I'm following up again on the ${amt}${what}${when}. I'd like to settle this by ${by}. Could you let me know today when you'll send it? I value our friendship and I don't want money to get in the way of it.`;
+  return `Hi ${who}, I'm getting my finances organised this month and noticed the ${amt}${what} is still open. Could you send it by ${by}? If it's easier, happy to take it in two parts. Thanks for sorting it!`;
 }
 
-/* ---------- row builders ---------- */
-function rowEl(list, item){
-  const d=document.createElement("div");
-  const hasCat=list==="expense", hasLiq=list==="asset";
-  d.className="row"+(hasCat||hasLiq?"":" two");
-  d.innerHTML =
-    `<input type="text" id="${list}-n-${item.id}" aria-label="Name" value="">` +
-    `<input type="number" inputmode="decimal" min="0" step="any" class="amt" id="${list}-a-${item.id}" aria-label="Amount">` +
-    (hasCat? `<select class="cat" id="${list}-c-${item.id}" aria-label="Type"><option value="need">Need</option><option value="want">Want</option><option value="save">Savings</option></select>`:"") +
-    (hasLiq? `<select class="cat" id="${list}-l-${item.id}" aria-label="Liquid"><option value="1">Liquid</option><option value="0">Locked</option></select>`:"") +
-    `<button type="button" class="del" aria-label="Remove ${item.name||"line"}">×</button>`;
-  const [n,a]=d.querySelectorAll("input");
-  n.value=item.name; a.value=item.amt||"";
-  n.addEventListener("input",()=>{item.name=n.value;touch();});
-  a.addEventListener("input",()=>{item.amt=+a.value||0;touch();});
-  const sel=d.querySelector("select");
-  if(sel && hasCat){ sel.value=item.cat; sel.addEventListener("change",()=>{item.cat=sel.value;touch();}); }
-  if(sel && hasLiq){ sel.value=item.liquid?"1":"0"; sel.addEventListener("change",()=>{item.liquid=sel.value==="1";touch();}); }
-  d.querySelector(".del").addEventListener("click",()=>{S[list]=S[list].filter(x=>x.id!==item.id);touch();renderLists();});
-  return d;
+/* ---------- list rows ---------- */
+const SEL={
+  cycle:[["m","Monthly"],["y","Yearly"]],
+  use:[["often","Weekly+"],["sometimes","Monthly"],["rarely","Rarely"],["never","Never"]],
+  act:[["keep","Keep"],["cancel","Cancel"]],
+  ess:[["1","Essential"],["0","Flexible"]],
+  kind:[["everyday","Everyday"],["savings","Savings"],["term","Term deposit"],["invest","Investments"]]
+};
+function sel(id,opts,val,label){return `<select class="c-sel" id="${id}" aria-label="${label}">${opts.map(([v,l])=>`<option value="${v}"${String(val)===v?" selected":""}>${l}</option>`).join("")}</select>`;}
+function numIn(id,val,label,cls="c-num"){return `<input type="number" inputmode="decimal" min="0" step="any" class="${cls}" id="${id}" aria-label="${label}" value="${val||""}">`;}
+function txtIn(id,val,label,ph){return `<input type="text" class="c-name" id="${id}" aria-label="${label}" placeholder="${ph}" value="${esc(val)}">`;}
+const DEL=`<button type="button" class="c-del" aria-label="Remove">×</button>`;
+
+function bind(row,item,list,map){
+  row.querySelectorAll("input,select").forEach(el=>{
+    const key=el.dataset.k;
+    el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{
+      let v=el.value;
+      if(map[key]) v=map[key](v);
+      item[key]=v; touch(); decorate();
+    });
+  });
+  row.querySelector(".c-del").addEventListener("click",()=>{S[list]=S[list].filter(x=>x.id!==item.id);touch();renderLists();});
 }
-const LISTS={income:"incomeRows",expense:"expenseRows",asset:"assetRows",liab:"liabRows"};
+
 function renderLists(){
-  for(const [k,el] of Object.entries(LISTS)){ const c=$(el); c.replaceChildren(...S[k].map(it=>rowEl(k,it))); }
-  renderGoals();
+  // subscriptions
+  $("subsRows").replaceChildren(...S.subs.map(s=>{
+    const r=document.createElement("div"); r.className="row"; r.dataset.id=s.id;
+    r.innerHTML=txtIn("sub-n-"+s.id,s.name,"Service","e.g. Streaming service")+numIn("sub-c-"+s.id,s.cost,"Cost")+sel("sub-y-"+s.id,SEL.cycle,s.cycle,"Billed")+sel("sub-u-"+s.id,SEL.use,s.use,"How often I use it")+sel("sub-a-"+s.id,SEL.act,s.act,"Decision")+DEL+`<span class="hint" hidden></span>`;
+    const [n,c]=r.querySelectorAll("input"); n.dataset.k="name"; c.dataset.k="cost";
+    const ss=r.querySelectorAll("select"); ss[0].dataset.k="cycle"; ss[1].dataset.k="use"; ss[2].dataset.k="act";
+    bind(r,s,"subs",{cost:Number}); return r;
+  }));
+  // spending
+  $("spendRows").replaceChildren(...S.spend.map(x=>{
+    const r=document.createElement("div"); r.className="row"; r.dataset.id=x.id;
+    r.innerHTML=txtIn("sp-n-"+x.id,x.name,"Category","e.g. Shopping")+sel("sp-e-"+x.id,SEL.ess,x.ess?"1":"0","Type")+numIn("sp-now-"+x.id,x.now,"Spend now per month")+numIn("sp-t-"+x.id,x.target,"Target per month")+DEL;
+    const ins=r.querySelectorAll("input"); ins[0].dataset.k="name"; ins[1].dataset.k="now"; ins[2].dataset.k="target";
+    r.querySelector("select").dataset.k="ess";
+    bind(r,x,"spend",{now:Number,target:Number,ess:v=>v==="1"}); return r;
+  }));
+  // accounts
+  $("acctRows").replaceChildren(...S.accts.map(a=>{
+    const r=document.createElement("div"); r.className="row"; r.dataset.id=a.id;
+    r.innerHTML=txtIn("ac-n-"+a.id,a.name,"Account","e.g. Bank savings")+sel("ac-k-"+a.id,SEL.kind,a.kind,"Type")+numIn("ac-b-"+a.id,a.bal,"Balance")+numIn("ac-r-"+a.id,a.rate,"Interest rate %","c-sm")+DEL+`<span class="hint" hidden></span>`;
+    const ins=r.querySelectorAll("input"); ins[0].dataset.k="name"; ins[1].dataset.k="bal"; ins[2].dataset.k="rate";
+    r.querySelector("select").dataset.k="kind";
+    bind(r,a,"accts",{bal:Number,rate:Number}); return r;
+  }));
+  renderIous();
+  decorate();
 }
 
-function field(label, obj, key, opts={}){
-  const id=(opts.prefix||"f")+"-"+key+(opts.suffix||"");
-  const w=document.createElement("div"); w.className="field";
-  w.innerHTML=`<label for="${id}">${label}</label><input type="number" inputmode="decimal" step="any" id="${id}">`;
+function field(label,obj,key,type="number",id){
+  const w=document.createElement("div"); w.className="field"; id=id||("f-"+key);
+  w.innerHTML=`<label for="${id}">${label}</label><input type="${type}" ${type==="number"?'inputmode="decimal" step="any" min="0"':""} id="${id}">`;
   const inp=w.querySelector("input"); inp.value=obj[key];
-  inp.addEventListener("input",()=>{obj[key]=+inp.value||0;touch();});
+  inp.addEventListener("input",()=>{obj[key]=type==="number"?(+inp.value||0):inp.value;touch();});
   return w;
 }
-
-function renderGoals(){
-  const list=$("goalList"); list.replaceChildren();
-  S.goals.forEach(g=>{
-    const el=document.createElement("div"); el.className="goal";
-    el.innerHTML=`<div class="goal-top"><input type="text" id="goal-n-${g.id}" aria-label="Goal name"><button type="button" class="del btn-ghost" aria-label="Remove goal" style="padding:4px">×</button></div><div class="fields"></div><div><div class="meter"><i></i></div></div><div class="goal-out"></div>`;
-    const n=el.querySelector("input"); n.value=g.name; n.addEventListener("input",()=>{g.name=n.value;touch();});
-    el.querySelector(".del").addEventListener("click",()=>{S.goals=S.goals.filter(x=>x.id!==g.id);touch();renderGoals();});
-    const f=el.querySelector(".fields"), o={prefix:"goal",suffix:"-"+g.id};
-    f.append(field("Cost today",g,"cost",o),field("Years away",g,"years",o),field("Already saved",g,"saved",o),field("Expected return %",g,"ret",o),field("Inflation for this goal %",g,"infl",o));
-    el.dataset.gid=g.id; list.append(el);
-  });
-  if(!S.goals.length){ const p=document.createElement("p"); p.className="muted"; p.textContent="No goals yet. Add one to see the monthly SIP it needs."; list.append(p); }
-  compute();
+function renderFields(){
+  $("goalFields").replaceChildren(
+    field("Goal name",S.goal,"name","text","g-name"),
+    field("Target amount",S.goal,"target","number","g-target"),
+    field("Saved so far",S.goal,"saved","number","g-saved"),
+    field("Reach it by",S.goal,"deadline","date","g-deadline"),
+    field("Take-home income per month",S.goal,"income","number","g-income"));
+  $("rateFields").replaceChildren(
+    field("Low-rate threshold %",S.rates,"threshold","number","r-th"),
+    field("High-yield savings %",S.rates,"hys","number","r-hys"),
+    field("Term deposit %",S.rates,"term","number","r-term"),
+    field("Index fund, long-run avg %",S.rates,"fund","number","r-fund"));
 }
 
-const RET_FIELDS=[["Current age","age"],["Retire at age","retireAge"],["Plan until age","lifeAge"],["Monthly expenses today","monthlyExp"],["Retirement savings so far","corpus"],["Monthly SIP toward retirement","sip"],["Return before retiring %","preRet"],["Return after retiring %","postRet"],["Inflation %","infl"]];
-function renderRet(){ $("retFields").replaceChildren(...RET_FIELDS.map(([l,k])=>field(l,S.ret,k,{prefix:"ret"}))); }
-
-/* ---------- chart ---------- */
-function retChart(rc){
-  const W=560,H=280,P={l:62,r:14,t:14,b:34};
-  const all=rc.base.pts.concat(rc.boosted.pts);
-  const minA=S.ret.age, maxA=Math.max(...all.map(p=>p[0]));
-  const maxV=Math.max(1,...all.map(p=>p[1]),rc.need);
-  const nice=niceMax(maxV);
-  const x=a=>P.l+(a-minA)/(maxA-minA||1)*(W-P.l-P.r);
-  const y=v=>H-P.b-v/nice*(H-P.t-P.b);
-  const path=pts=>pts.map((p,i)=>(i?"L":"M")+x(p[0]).toFixed(1)+","+y(p[1]).toFixed(1)).join("");
-  let g="";
-  for(let k=0;k<=4;k++){ const v=nice*k/4; g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${P.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${money(v,true)}</text>`; }
-  const step=(maxA-minA)>40?10:5;
-  for(let a=Math.ceil(minA/step)*step;a<=maxA;a+=step) g+=`<text x="${x(a)}" y="${H-P.b+18}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${a}</text>`;
-  const rx=x(S.ret.retireAge);
-  g+=`<line x1="${rx}" x2="${rx}" y1="${P.t}" y2="${H-P.b}" stroke="var(--chart-c)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
-  g+=`<line x1="${rx-30}" x2="${rx+30}" y1="${y(rc.need)}" y2="${y(rc.need)}" stroke="var(--chart-b)" stroke-width="1"/><text x="${rx+34}" y="${y(rc.need)+4}" font-size="11" fill="var(--chart-b)">target</text>`;
-  const area=path(rc.base.pts)+`L${x(rc.base.pts.at(-1)[0])},${y(0)}L${x(minA)},${y(0)}Z`;
-  g+=`<path d="${area}" fill="var(--chart-a)" opacity=".12"/>`;
-  if(rc.extra>1) g+=`<path d="${path(rc.boosted.pts)}" fill="none" stroke="var(--chart-b)" stroke-width="2" stroke-dasharray="6 4"/>`;
-  g+=`<path d="${path(rc.base.pts)}" fill="none" stroke="var(--chart-a)" stroke-width="2.5"/>`;
-  g+=`<circle cx="${rx}" cy="${y(rc.have)}" r="4.5" fill="var(--chart-a)" stroke="var(--surface)" stroke-width="2"/>`;
-  g+=`<text x="${P.l}" y="${H-4}" font-size="11" fill="var(--muted)">Age</text>`;
-  $("retChart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Projected retirement corpus by age">${g}</svg>`;
-}
-function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); for(const m of [1,1.25,1.5,2,2.5,3,4,5,6,8,10]) if(m*p>=v) return m*p; return 10*p; }
-
-/* ---------- compute everything ---------- */
-function status(v, good, ok){ return v>=good?["ok","Strong"]:v>=ok?["mid","Getting there"]:["low","Needs work"]; }
-function pill(cls,txt){ return `<span class="pill ${cls}">${txt}</span>`; }
-
-function compute(){
-  const inc=sum(S.income), exp=sum(S.expense);
-  const by=c=>sum(S.expense.filter(e=>e.cat===c));
-  const need=by("need"), want=by("want"), sv=by("save");
-  const surplus=inc-exp, savedTotal=sv+Math.max(0,surplus);
-  const rate=inc>0? savedTotal/inc*100 : 0;
-  const A=sum(S.asset), L=sum(S.liab), NW=A-L;
-  const liquid=sum(S.asset.filter(a=>a.liquid));
-  const spend=need+want, efMonths=spend>0? liquid/spend : 0;
-  const goals=S.goals.map(g=>({g,c:goalCalc(g)}));
-  const goalSip=goals.reduce((a,b)=>a+b.c.sip,0);
-  const avail=sv+Math.max(0,surplus) - (S.ret.sip||0);
-  const rc=retCalc(S.ret);
-  const debtRatio=A>0? L/A*100 : (L>0?100:0);
-  const goalCover=goalSip>0? Math.min(100,Math.max(0,avail)/goalSip*100) : 100;
-
-  // Budget
-  $("b-in").textContent=money(inc); $("b-out").textContent=money(exp);
-  $("b-rate").textContent=pct(rate);
-  $("b-left").textContent=money(surplus);
-  $("b-left").style.color= surplus<0?"var(--bad)":"";
-  $("b-left-s").textContent= surplus<0? "spending more than you earn" : "income not yet given a job";
-  $("incomeTotal").textContent=money(inc); $("expenseTotal").textContent=money(exp);
-  const sp=[["Needs",need,50],["Wants",want,30],["Savings",savedTotal,20]];
-  $("split").innerHTML=sp.map(([l,v,t])=>{ const p=inc>0?v/inc*100:0; return `<div class="split-row"><span>${l}</span><div class="bars"><i style="width:${Math.min(100,p)}%"></i><em style="left:${t}%"></em></div><span class="num" style="text-align:right">${pct(p)}</span></div>`;}).join("");
-
-  // Net worth
-  $("n-a").textContent=money(A,true); $("n-l").textContent=money(L,true); $("n-nw").textContent=money(NW,true);
-  $("n-ef").textContent=efMonths.toFixed(1);
-  $("assetTotal").textContent=money(A); $("liabTotal").textContent=money(L);
-
-  // Goals
-  goals.forEach(({g,c})=>{
-    const el=document.querySelector(`.goal[data-gid="${g.id}"]`); if(!el) return;
-    el.querySelector(".meter i").style.width=c.funded+"%";
-    el.querySelector(".goal-out").innerHTML=`<span>Will cost <b>${money(c.fv,true)}</b></span><span>SIP needed <b>${money(c.sip)}</b>/mo</span>`;
+function renderIous(){
+  const list=$("iouList"); list.replaceChildren();
+  const open=S.ious.filter(i=>!i.paid), paid=S.ious.filter(i=>i.paid);
+  open.forEach(i=>{
+    const c=document.createElement("div"); c.className="iou"; c.dataset.id=i.id;
+    c.innerHTML=`<div class="iou-top"><input type="text" class="who" id="iou-w-${i.id}" aria-label="Who owes you" placeholder="Name" value="${esc(i.who)}"><span class="status"></span><button type="button" class="c-del" aria-label="Remove">×</button></div>
+      <div class="fields">
+        <div class="field"><label for="iou-a-${i.id}">Amount</label><input type="number" inputmode="decimal" min="0" step="any" id="iou-a-${i.id}" data-k="amt" value="${i.amt||""}"></div>
+        <div class="field"><label for="iou-l-${i.id}">Lent on</label><input type="date" id="iou-l-${i.id}" data-k="lent" value="${i.lent||""}"></div>
+        <div class="field"><label for="iou-d-${i.id}">Due back</label><input type="date" id="iou-d-${i.id}" data-k="due" value="${i.due||""}"></div>
+      </div>
+      <div class="field"><label for="iou-f-${i.id}">What for</label><input type="text" id="iou-f-${i.id}" data-k="what" value="${esc(i.what)}" placeholder="e.g. concert tickets"></div>
+      <div class="iou-btns"><button type="button" class="btn-primary btn-sm" data-do="draft">Draft reminder</button><button type="button" class="btn-sm" data-do="paid">Mark as paid</button></div>
+      <div class="draft" hidden>
+        <div class="tone" role="group" aria-label="Tone">${[["gentle","Gentle"],["clear","Clear"],["firm","Firm"]].map(([v,l])=>`<button type="button" data-tone="${v}" aria-pressed="${i.tone===v}">${l}</button>`).join("")}</div>
+        <label class="sr" for="iou-m-${i.id}">Reminder message</label>
+        <textarea id="iou-m-${i.id}"></textarea>
+        <div class="iou-btns"><button type="button" class="btn-sm" data-do="copy">Copy message</button><small class="copied" aria-live="polite"></small></div>
+        <small>Paste it into the chat app you normally use with them. Edit freely, it's your voice.</small>
+      </div>`;
+    const who=c.querySelector(".who");
+    who.addEventListener("input",()=>{i.who=who.value;touch();refreshDraft();});
+    c.querySelectorAll("[data-k]").forEach(el=>el.addEventListener("input",()=>{i[el.dataset.k]=el.dataset.k==="amt"?(+el.value||0):el.value;touch();decorate();refreshDraft();}));
+    c.querySelector(".c-del").addEventListener("click",()=>{S.ious=S.ious.filter(x=>x.id!==i.id);touch();renderIous();decorate();});
+    const box=c.querySelector(".draft"), ta=c.querySelector("textarea");
+    const refreshDraft=()=>{ if(!box.hidden) ta.value=draft(i); };
+    c.querySelector('[data-do="draft"]').addEventListener("click",()=>{box.hidden=!box.hidden; refreshDraft(); if(!box.hidden) ta.focus();});
+    c.querySelector('[data-do="paid"]').addEventListener("click",()=>{i.paid=true;i.paidOn=iso(today());touch();renderIous();decorate();});
+    c.querySelectorAll("[data-tone]").forEach(b=>b.addEventListener("click",()=>{i.tone=b.dataset.tone;c.querySelectorAll("[data-tone]").forEach(x=>x.setAttribute("aria-pressed",x===b));touch();ta.value=draft(i);}));
+    c.querySelector('[data-do="copy"]').addEventListener("click",()=>{
+      const msg=c.querySelector(".copied");
+      const ok=()=>{msg.textContent="Copied";setTimeout(()=>msg.textContent="",2000);};
+      try{ navigator.clipboard.writeText(ta.value).then(ok,()=>{ta.select();msg.textContent="Selected, press Ctrl/Cmd + C";}); }
+      catch(e){ ta.select(); msg.textContent="Selected, press Ctrl/Cmd + C"; }
+    });
+    list.append(c);
   });
-  $("g-sip").textContent=money(goalSip); $("g-avail").textContent=money(Math.max(0,avail));
-  const gGap=Math.max(0,goalSip-Math.max(0,avail));
-  $("g-gap").textContent=money(gGap); $("g-gap").style.color=gGap>0?"var(--bad)":"var(--good)";
-  $("g-gap-s").textContent= gGap>0? "stretch timelines, trim wants, or raise income" : "your current savings cover every goal";
+  if(!open.length){ const p=document.createElement("div"); p.className="card"; p.innerHTML=`<h3>Nobody owes you anything</h3><p class="muted" style="margin:0">Lent someone money or covered a bill? Add them here so it doesn't quietly slip away.</p>`; list.append(p); }
+  if(paid.length){
+    const p=document.createElement("div"); p.className="card";
+    p.innerHTML=`<h3>Paid back</h3><div class="paid-list">${paid.map(i=>`<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>${esc(i.who)} · ${esc(i.what||"")}</span><span><span class="num">${money(i.amt)}</span> <button type="button" class="btn-ghost btn-sm" data-undo="${i.id}">Undo</button></span></div>`).join("")}</div>`;
+    p.querySelectorAll("[data-undo]").forEach(b=>b.addEventListener("click",()=>{const it=S.ious.find(x=>x.id===b.dataset.undo); if(it){it.paid=false;} touch();renderIous();decorate();}));
+    list.append(p);
+  }
+}
 
-  // Retirement
-  $("r-need").textContent=money(rc.need,true);
-  $("r-need-s").textContent=`at age ${S.ret.retireAge}, covering ${money(rc.annualExpAtRet/12,true)}/mo then`;
-  $("r-have").textContent=money(rc.have,true);
-  $("r-have-s").textContent=`${pct(rc.ready)} of what you need`;
-  $("r-extra").textContent=money(rc.extra);
-  $("r-last").textContent= rc.base.lastsTo===null? `${S.ret.lifeAge}+` : `age ${rc.base.lastsTo}`;
-  $("r-last").style.color= rc.base.lastsTo!==null && rc.base.lastsTo<S.ret.lifeAge? "var(--bad)":"var(--good)";
-  $("r-last-s").textContent= rc.base.lastsTo!==null && rc.base.lastsTo<S.ret.lifeAge? `${S.ret.lifeAge-rc.base.lastsTo} years short of your plan` : "on the current plan";
-  retChart(rc);
+/* ---------- outputs ---------- */
+function setBadge(id,n){const b=$(id); b.hidden=!n; b.textContent=n;}
 
-  // Overview + score
-  $("o-nw").textContent=money(NW,true); $("o-nw-s").textContent=`${money(A,true)} assets, ${money(L,true)} owed`;
-  $("o-surplus").textContent=money(surplus); $("o-surplus-s").textContent=`savings rate ${pct(rate)}`;
-  $("o-goals").textContent=pct(goalCover); $("o-goals-s").textContent=`${S.goals.length} goal${S.goals.length===1?"":"s"}, ${money(goalSip,true)}/mo needed`;
-  $("o-ret").textContent=pct(rc.ready); $("o-ret-s").textContent= rc.extra>1? `add ${money(rc.extra,true)}/mo to close the gap` : "on track";
+function decorate(){
+  const M=model();
+  // flags on subscription rows
+  S.subs.forEach(s=>{
+    const r=document.querySelector(`#subsRows .row[data-id="${s.id}"]`); if(!r) return;
+    const flag=(s.use==="rarely"||s.use==="never")&&s.act!=="cancel";
+    r.classList.toggle("flag",flag); r.classList.toggle("off",s.act==="cancel");
+    const h=r.querySelector(".hint"); h.hidden=!flag;
+    if(flag) h.textContent=`You ${s.use==="never"?"never":"rarely"} use this. Cancelling saves ${money(monthly(s)*12)} a year.`;
+  });
+  S.accts.forEach(a=>{
+    const r=document.querySelector(`#acctRows .row[data-id="${a.id}"]`); if(!r) return;
+    const low=(a.kind==="savings"||a.kind==="everyday")&&(+a.rate||0)<(+S.rates.threshold||0)&&(+a.bal||0)>0;
+    r.classList.toggle("flag",low&&a.kind==="savings");
+    const h=r.querySelector(".hint"); h.hidden=!(low&&a.kind==="savings");
+    if(!h.hidden) h.textContent=`Earning ${a.rate||0}%. At ${S.rates.hys}% this balance would earn ${money((+a.bal||0)*((+S.rates.hys||0)-(+a.rate||0))/100)} more a year.`;
+  });
+  // IOU statuses
+  S.ious.filter(i=>!i.paid).forEach(i=>{
+    const el=document.querySelector(`.iou[data-id="${i.id}"] .status`); if(!el) return;
+    const d=Math.round((parse(i.due)-M.t)/DAY);
+    el.innerHTML= !i.due? "" : d<0? `<span class="pill low">${-d} day${d===-1?"":"s"} overdue</span>` : d===0? `<span class="pill mid">Due today</span>` : `<span class="pill ok">Due in ${d} day${d===1?"":"s"}</span>`;
+  });
+  compute(M);
+}
 
-  const C=[
-    {t:"Savings rate", v:rate, pts:Math.min(20,rate/20*20), s:status(rate,20,10), d:`You save ${pct(rate)} of take-home pay. Aim for 20% or more.`},
-    {t:"Emergency fund", v:efMonths, pts:Math.min(20,efMonths/6*20), s:status(efMonths,6,3), d:`${efMonths.toFixed(1)} months of spending in liquid assets. Six months is a safe cushion.`},
-    {t:"Debt load", v:debtRatio, pts:Math.max(0,Math.min(20,(60-debtRatio)/40*20)), s:debtRatio<=30?["ok","Strong"]:debtRatio<=50?["mid","Getting there"]:["low","Needs work"], d:`You owe ${pct(debtRatio)} of what you own. Under 30% keeps you flexible.`},
-    {t:"Goals funded", v:goalCover, pts:goalCover/100*20, s:status(goalCover,100,60), d:`Your monthly savings cover ${pct(goalCover)} of the SIPs your goals need.`},
-    {t:"Retirement", v:rc.ready, pts:rc.ready/100*20, s:status(rc.ready,100,60), d:`You're on course for ${pct(rc.ready)} of the corpus you'll need at ${S.ret.retireAge}.`}
+function compute(M){
+  M=M||model();
+  const g=S.goal;
+  setBadge("tb-subs",M.subsFlagOpen.length);
+  setBadge("tb-idle",M.idle>0&&M.hysGainYr>1?1:0);
+  setBadge("tb-owed",M.late.length);
+
+  // hero
+  $("h-title").textContent=`${g.name||"My savings goal"}`;
+  const lead=(+g.target||0)>0?`${money(+g.target)} by ${nice(M.dl)}. `:"";
+  const onTrack=M.gap<=0.5;
+  $("h-sub").textContent= lead + ((+g.target||0)<=0? "Set a target below to build your plan." :
+    onTrack? `With the changes below you'd reach ${money(M.projected,true)} by your deadline. You're on track.` :
+    M.finishMonths===Infinity? "Right now nothing is left over each month. Start with the action plan." :
+    `With the changes below you'd get there around ${nice(addMonths(M.t,Math.ceil(M.finishMonths)))}. Close the last ${money(M.gap)}/month to finish on time.`);
+  const prog=(+g.target||0)>0?Math.min(100,(+g.saved||0)/g.target*100):0;
+  $("h-bar").style.width=prog+"%";
+  $("h-pace").style.left=(M.paceFrac*100)+"%";
+  $("h-saved").textContent=`${money(+g.saved||0)} saved (${pct(prog)})`;
+  $("h-target").textContent=money(+g.target||0);
+  $("h-need").textContent=money(M.need);
+  $("h-now").textContent=money(M.saveNow);
+  $("h-found").textContent="+"+money(M.found);
+  $("h-status").innerHTML= onTrack? `<span class="pill">On track</span>` : `<span class="pill">Short ${money(M.gap)}/mo</span>`;
+
+  // stacked bar
+  const parts=[
+    ["Already saving each month",Math.max(0,M.saveNow),"--s1"],
+    ["Cancelled subscriptions",M.subsCut,"--s2"],
+    ["Spending targets",M.spendCut,"--s3"],
+    ["IOUs collected (spread over goal)",M.iouM,"--s4"],
+    ["Extra interest on idle cash",M.interestM,"--s5"]
   ];
-  $("checks").innerHTML=C.map(c=>`<div class="check"><strong>${c.t}</strong>${pill(c.s[0],c.s[1])}<p>${c.d}</p></div>`).join("");
-  const score=Math.round(C.reduce((a,c)=>a+c.pts,0));
-  $("dial").setAttribute("stroke-dashoffset",(314.16*(1-score/100)).toFixed(1));
-  $("dialTxt").textContent=score;
-  const weakest=C.slice().sort((a,b)=>a.pts-b.pts)[0];
-  $("scoreHead").textContent= score>=80?"In great shape":score>=60?"Solid, with gaps to close":score>=40?"A few things need attention":"Time for a reset";
-  $("scoreTxt").textContent=`Biggest lever right now: ${weakest.t.toLowerCase()}. ${weakest.d}`;
+  const scale=Math.max(M.need,M.newRate,1)*1.05;
+  $("sbar").innerHTML=parts.map(([l,v,c])=>`<span title="${l}" style="width:${v/scale*100}%;background:var(${c})"></span>`).join("");
+  const nl=Math.min(100,M.need/scale*100);
+  const need=$("sbarNeed"); need.style.left=nl+"%"; need.classList.toggle("flip",nl>60);
+  need.querySelector("em").textContent=`needed ${money(M.need)}`;
+  $("keys").innerHTML=parts.map(([l,v,c])=>`<div><i style="background:var(${c})"></i><span>${l}</span><span class="num">${money(v)}</span></div>`).join("")+
+    `<div class="tot"><span>Per month toward your goal</span><span class="num">${money(M.newRate)}</span></div>`;
+
+  // actions
+  const A=[];
+  if(M.subsFlagOpen.length) A.push({k:"subs-flag",t:`Cancel ${M.subsFlagOpen.length} subscription${M.subsFlagOpen.length>1?"s":""} you rarely use`,d:M.subsFlagOpen.map(s=>s.name).join(", "),amt:M.subsFlagOpen.reduce((a,s)=>a+monthly(s),0),tab:"subscriptions"});
+  if(M.subsCut>0) A.push({k:"subs-cut",t:`Actually cancel the ${S.subs.filter(s=>s.act==="cancel").length} you marked`,d:"Do it today, before the next billing date. Set a reminder for free trials too.",amt:M.subsCut,tab:"subscriptions"});
+  if(M.spendCut>0) A.push({k:"spend",t:"Stick to your flexible spending targets",d:M.topFlex?`Biggest flexible line is ${M.topFlex.name.toLowerCase()} at ${money(M.topFlex.now)}. Try a 48-hour pause before any non-essential buy.`:"",amt:M.spendCut,tab:"spending"});
+  else if(M.flex>0) A.push({k:"spend",t:"Set targets for flexible spending",d:`You spend ${money(M.flex)}/month on flexible categories. Trimming a quarter frees ${money(M.flex*.25)}.`,amt:M.flex*.25,tab:"spending"});
+  if(M.late.length) A.push({k:"iou-late",t:`Send reminders to ${M.late.map(i=>i.who).join(", ")}`,d:`${money(M.late.reduce((a,i)=>a+(+i.amt||0),0))} is overdue. A friendly, clear note today usually does it.`,amt:M.late.reduce((a,i)=>a+(+i.amt||0),0),one:true,tab:"owed"});
+  if(M.idle>0&&M.hysGainYr>1) A.push({k:"idle",t:`Move ${money(M.idle,true)} of idle cash to a higher-rate account`,d:`It's earning about ${M.idleRate.toFixed(1)}%. Keep your ${money(M.ef,true)} safety net in high-yield savings, and match the rest to when you'll need it.`,amt:M.interestM,tab:"idle-money"});
+  if(M.need>0) A.push({k:"auto",t:`Automate a ${money(Math.min(M.need,M.newRate||M.need))} transfer on payday`,d:"Move it into a separate savings account the day you're paid, before you can spend it.",amt:0,tab:"plan"});
+  if(M.gap>0.5) A.push({k:"gap",t:`Find the last ${money(M.gap)} a month`,d:`Options: push the deadline to ${M.finishMonths===Infinity?"later":nice(addMonths(M.t,Math.ceil(M.finishMonths)))}, sell things you don't use, or add a side income.`,amt:0,tab:"plan"});
+  $("actions").innerHTML=A.map(a=>`<div class="act${S.done[a.k]?" done":""}"><input type="checkbox" id="act-${a.k}" data-k="${a.k}"${S.done[a.k]?" checked":""}><div><label for="act-${a.k}"><strong>${esc(a.t)}</strong></label><p>${esc(a.d)}${a.tab!=="plan"?` <a href="#${a.tab}">Open</a>`:""}</p></div><span class="amt">${a.amt>0?(a.one?"+"+money(a.amt):"+"+money(a.amt)+"/mo"):""}</span></div>`).join("") || `<p class="muted" style="margin:0">Add your income, spending and subscriptions to get your plan.</p>`;
+  $("actions").querySelectorAll("input").forEach(cb=>cb.addEventListener("change",()=>{S.done[cb.dataset.k]=cb.checked;cb.closest(".act").classList.toggle("done",cb.checked);touch(true);}));
+  const doneN=A.filter(a=>S.done[a.k]).length;
+  $("act-count").textContent=A.length?`${doneN} of ${A.length} done`:"";
+
+  // subscriptions figs
+  $("s-total").textContent=money(M.subsAll)+"/mo"; $("s-total-s").textContent=`${money(M.subsAll*12)} a year across ${S.subs.length} services`;
+  $("s-waste").textContent=money(M.subsWaste*12)+"/yr"; $("s-waste-s").textContent=`${M.subsFlag.length} service${M.subsFlag.length===1?"":"s"}`;
+  $("s-cut").textContent=money(M.subsCut*12)+"/yr"; $("s-cut-s").textContent=`${S.subs.filter(s=>s.act==="cancel").length} marked to cancel`;
+
+  // spending
+  $("p-ess").textContent=money(M.ess); $("p-flex").textContent=money(M.flex);
+  $("p-flex-s").textContent=(+g.income||0)>0?`${pct(M.flex/g.income*100)} of take-home pay`:"";
+  $("p-cut").textContent=money(M.spendCut)+"/mo"; $("p-cut-s").textContent=`${money(M.spendCut*12)} a year`;
+  $("spendTotal").textContent=money(M.ess+M.flex);
+
+  // idle
+  const R=S.rates;
+  $("i-th").textContent=(+R.threshold||0)+"%";
+  $("i-idle").textContent=money(M.idle); $("i-idle-s").textContent=M.idle>0?`averaging ${M.idleRate.toFixed(1)}% interest`:"nothing idle, nice";
+  $("i-ef").textContent=money(M.ef);
+  $("i-gain").textContent="+"+money(M.hysGainYr);
+  $("acctTotal").textContent=money(S.accts.reduce((a,x)=>a+(+x.bal||0),0));
+  const rows=[["Where it is now",+M.idleRate.toFixed(1)],["High-yield savings",+R.hys||0],["Term deposit",+R.term||0],["Index fund (long-run avg)",+R.fund||0]];
+  const mx=Math.max(1,...rows.map(r=>M.idle*r[1]/100));
+  $("compare").innerHTML=rows.map(([l,r])=>{const v=M.idle*r/100;return `<div class="cmp-row"><span>${l}<br><span class="muted num" style="font-size:.78rem">${r}%</span></span><div class="b"><i style="width:${v/mx*100}%"></i></div><span class="num" style="text-align:right">${money(v)}</span></div>`;}).join("");
+  const efGap=Math.min(M.idle,M.ef), rest=Math.max(0,M.idle-M.ef);
+  const shortGoal=M.monthsLeft<=36;
+  $("opts").innerHTML=[
+    {h:"High-yield savings",best:true,amt:efGap,r:R.hys,acc:"Instant",risk:"Very low",p:`Home for your safety net. Move ${money(efGap)} here first so emergencies never touch your goal.`},
+    {h:"Term / fixed deposit",best:shortGoal&&rest>0,amt:rest,r:R.term,acc:"Locked for a term",risk:"Very low",p:`Good for money you need in 1–3 years, like your ${esc(g.name||"goal")}. Ladder a few so one matures every few months.`},
+    {h:"Index fund / mutual fund",best:!shortGoal&&rest>0,amt:rest,r:R.fund,acc:"Sell any day, value moves",risk:"Higher, can fall",p:"For money you won't touch for 5+ years. Prices swing, so not for a goal that's months away. Invest monthly to smooth the bumps."}
+  ].map(o=>`<div class="opt${o.best?" best":""}"><div class="card-head"><h3>${o.h}</h3>${o.best?`<span class="pill ok">Fits you</span>`:""}</div><dl><dt>Example rate</dt><dd class="num">${o.r}%</dd><dt>Access</dt><dd>${o.acc}</dd><dt>Risk</dt><dd>${o.risk}</dd></dl><div><span class="label">On ${money(o.amt,true)}, per year</span><div class="gain">+${money(o.amt*(+o.r||0)/100)}</div></div><p>${o.p}</p></div>`).join("");
+
+  // owed
+  $("o-open").textContent=money(M.owed); $("o-open-s").textContent=`from ${M.open.length} ${M.open.length===1?"person":"people"}`;
+  const lateAmt=M.late.reduce((a,i)=>a+(+i.amt||0),0);
+  $("o-late").textContent=money(lateAmt); $("o-late").style.color=lateAmt>0?"var(--bad)":"";
+  $("o-late-s").textContent=M.late.length?M.late.map(i=>i.who).join(", "):"all good";
+  const paid=S.ious.filter(i=>i.paid);
+  $("o-paid").textContent=money(paid.reduce((a,i)=>a+(+i.amt||0),0)); $("o-paid-s").textContent=`${paid.length} settled`;
 }
 
 /* ---------- events ---------- */
 let saveT;
-function touch(){ if(S.sample){ S.sample=false; $("sampleNotice").hidden=true; } clearTimeout(saveT); saveT=setTimeout(save,250); compute(); }
+function touch(quiet){ if(S.sample){S.sample=false;$("sampleNotice").hidden=true;} clearTimeout(saveT); saveT=setTimeout(save,250); if(!quiet) compute(); }
 
 document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
-  const k=b.dataset.add;
-  if(k==="goal") S.goals.push({id:uid(),name:"New goal",cost:0,years:5,saved:0,ret:10,infl:6});
-  else S[k].push({id:uid(),name:"",amt:0,cat:"need",liquid:false});
-  touch(); renderLists();
-  const last = k==="goal" ? document.querySelector(".goal:last-child input") : $(LISTS[k]).lastElementChild?.querySelector("input");
-  last && last.focus();
+  const k=b.dataset.add, t=today();
+  const blank={subs:{name:"",cost:0,cycle:"m",use:"often",act:"keep"},spend:{name:"",ess:false,now:0,target:0},accts:{name:"",kind:"savings",bal:0,rate:0},
+    ious:{who:"",amt:0,what:"",lent:iso(t),due:iso(addDays(t,30)),paid:false,tone:"gentle"}}[k];
+  S[k].push({id:uid(),...blank}); touch(); renderLists();
+  const el=k==="ious"?document.querySelector(".iou:last-of-type .who"):document.querySelector(`#${{subs:"subsRows",spend:"spendRows",accts:"acctRows"}[k]} .row:last-child input`);
+  el&&el.focus();
 }));
-
-$("currency").addEventListener("change",e=>{ S.currency=e.target.value; save(); compute(); });
-$("resetBtn").addEventListener("click",()=>{ $("confirmReset").hidden=false; $("confirmYes").focus(); });
-$("confirmNo").addEventListener("click",()=>{ $("confirmReset").hidden=true; });
-const wipe=()=>{ S=BLANK(S.currency); save(); $("confirmReset").hidden=true; $("sampleNotice").hidden=true; renderAll(); };
+$("suggestCuts").addEventListener("click",()=>{
+  S.spend.forEach(x=>{ if(!x.ess) x.target=Math.round((+x.now||0)*0.75/10)*10; });
+  touch(); renderLists();
+});
+$("currency").addEventListener("change",e=>{S.cur=e.target.value;save();compute();renderIous();decorate();});
+$("resetBtn").addEventListener("click",()=>{$("confirmReset").hidden=false;$("confirmYes").focus();});
+$("confirmNo").addEventListener("click",()=>{$("confirmReset").hidden=true;});
+const wipe=()=>{S=BLANK(S.cur);save();$("confirmReset").hidden=true;$("sampleNotice").hidden=true;renderAll();location.hash="plan";};
 $("confirmYes").addEventListener("click",wipe);
 $("clearSample").addEventListener("click",wipe);
 
-const TABS=["overview","budget","networth","goals","retirement"];
+const TABS=["plan","subscriptions","spending","idle-money","owed"];
 function route(){
-  const t=TABS.includes(location.hash.slice(1))? location.hash.slice(1) : "overview";
-  document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t);
-  document.querySelectorAll("nav.tabs a").forEach(a=>{ if(a.dataset.tab===t) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  const t=TABS.includes(location.hash.slice(1))?location.hash.slice(1):"plan";
+  document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==(t));
+  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.tab===t)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
 }
-window.addEventListener("hashchange",()=>{ route(); window.scrollTo(0,0); });
+window.addEventListener("hashchange",()=>{route();window.scrollTo(0,0);});
 
-function renderAll(){ $("currency").value=S.currency; renderLists(); renderRet(); compute(); }
+function renderAll(){ $("currency").value=S.cur; renderFields(); renderLists(); }
 $("sampleNotice").hidden=!S.sample;
 renderAll(); route();
 })();
