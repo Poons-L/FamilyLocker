@@ -25,7 +25,8 @@ INK = HexColor("#1F1D1A"); MUTED = HexColor("#6E665A"); LINE = HexColor("#E2D7C2
 VAULT = HexColor("#121318"); VAULT_SOFT = HexColor("#FFFDF8"); GOLD = HexColor("#A57A30")
 GOLD_SOFT = HexColor("#F1E5CC"); FIELD = HexColor("#FFFDF7"); CALC = HexColor("#F3E6CB"); PAPER = HexColor("#FFFDF7")
 CREAM = HexColor("#F8F2E7"); GOLD_BRIGHT = HexColor("#D2A85C"); NIGHT_FIELD = HexColor("#1E2026")
-NOTE_NAME = "Ulka"   # signs the tip boxes, as in the other TNN kits
+NOTE_NAME = "Ulka"
+LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "tnn-logo.png")   # signs the tip boxes, as in the other TNN kits
 
 def reg(name, path, fallback):
     try:
@@ -107,6 +108,8 @@ class Planner:
         self.page_no += 1
         c, W, H, M = self.c, self.W, self.H, self.M
         c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+        if getattr(self, "logo_top", False):
+            c.drawImage(LOGO, W - M - 46, H - M - 40, 46, 46, mask="auto")
         self.text(M, H - M - 2, kicker.upper(), F_BOLD, 7.5, GOLD)
         self.text(M, H - M - 28, title, F_DISP, 24, INK)
         y = H - M - 46
@@ -116,8 +119,9 @@ class Planner:
         y -= 14
         # footer
         c.setStrokeColor(LINE); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
-        self.text(M, 20, BRAND.upper(), F_BOLD, 7, INK)
-        bw = pdfmetrics.stringWidth(BRAND.upper(), F_BOLD, 7) + 1.3 * len(BRAND) + 6
+        c.drawImage(LOGO, M, 15.5, 14, 14, mask="auto")
+        self.text(M + 19, 20, BRAND.upper(), F_BOLD, 7, INK)
+        bw = 19 + pdfmetrics.stringWidth(BRAND.upper(), F_BOLD, 7) + 1.3 * len(BRAND) + 6
         self.text(M + bw, 20, f"·  {self.docname}  ·  Get your own copy: {SHOP}", F_BODY, 7, MUTED)
         self.text(W - M, 20, str(self.page_no), F_BODY, 7.5, MUTED, "right")
         return y
@@ -626,6 +630,7 @@ def cover(P, kicker, title_lines, sub, fields):
     c, W, H, M = P.c, P.W, P.H, P.M
     CW = W - 2 * M
     c.setFillColor(VAULT); c.rect(0, 0, W, H, stroke=0, fill=1)
+    c.drawImage(LOGO, W - M - 64, H - M - 58, 64, 64, mask="auto")
     y = H - M - 6
     P.text(M, y, f"{BRAND.upper()}  ·  {kicker}", F_BOLD, 7.5, GOLD_BRIGHT)
     y -= 50
@@ -642,7 +647,8 @@ def cover(P, kicker, title_lines, sub, fields):
         P.meta[name] = {}
         y -= 62
     c.setStrokeColor(HexColor("#2E3038")); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
-    P.text(M, 20, BRAND.upper(), F_BOLD, 7, HexColor("#F5EFE3"))
+    c.drawImage(LOGO, M, 15.5, 14, 14, mask="auto")
+    P.text(M + 19, 20, BRAND.upper(), F_BOLD, 7, HexColor("#F5EFE3"))
     P.text(W - M, 20, "Fill it on your phone or print it", F_BODY, 7.5, HexColor("#B9B2A3"), "right")
 
 
@@ -661,6 +667,7 @@ def build_leak_check(path, size):
     P.docname = "Subscription Leak Check"
     c, W, H, M = P.c, P.W, P.H, P.M
     CW = W - 2 * M
+    P.logo_top = True
     y = P.page("The Subscription Leak Check", "Free tool  ·  10 minutes",
                "Grab your last two bank or card statements. List every charge that repeats. Be honest about what you actually used. The totals add themselves up.")
     P.text(W - M - 104, y - 4, "Currency", F_BODY, 9, MUTED, "right")

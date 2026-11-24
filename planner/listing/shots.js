@@ -26,7 +26,7 @@ hero: [2000,1600,`
 </div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:760px;right:70px;top:250px;transform:rotate(4deg)">
 <img class="pg" src="${img('f01.png')}" style="position:absolute;width:700px;right:430px;top:170px;transform:rotate(-5deg)">
-<div class="brand">THE NICHELESS NICHE</div>`],
+<div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 inside: [2000,1600,`
 <div style="position:absolute;left:90px;top:80px"><div class="k" style="font-size:28px">What's inside</div>
 <div class="h" style="font-size:96px;margin-top:14px">23 pages, one calm money system</div></div>
@@ -34,7 +34,7 @@ inside: [2000,1600,`
 ${[['f03','Savings goal + milestones'],['f04','Net worth snapshot'],['f05','Subscription audit'],['f06','Spending leaks'],['f07','Idle money check'],
    ['f08','Owed to me + scripts'],['f09','Savings tracker'],['f10','Earnings tracker'],['f11','12 monthly budgets'],['f23','Year in review']]
   .map(([f,l])=>`<div><img class="pg" src="${img(f+'.png')}" style="width:100%"><div style="font-size:26px;font-weight:700;margin-top:14px;color:#F5EFE3">${l}</div></div>`).join('')}
-</div><div class="brand">THE NICHELESS NICHE</div>`],
+</div><div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 subs: [2000,1600,`
 <div style="position:absolute;left:90px;top:150px;width:780px">
  <div class="k" style="font-size:28px">Subscription audit</div>
@@ -43,7 +43,7 @@ subs: [2000,1600,`
 </div>
 <img class="pg" src="${img('f05.png')}" style="position:absolute;width:900px;right:90px;top:90px">
 <div class="callout" style="left:560px;bottom:200px"><b>$1,373</b><span>a year back, in one evening</span></div>
-<div class="brand">THE NICHELESS NICHE</div>`],
+<div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 monthly: [2000,1600,`
 <div style="position:absolute;left:90px;top:80px;width:1820px">
  <div class="k" style="font-size:28px">12 monthly budgets + earnings tracker</div>
@@ -51,7 +51,7 @@ monthly: [2000,1600,`
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:820px;left:90px;top:330px">
 <img class="pg" src="${img('f10.png')}" style="position:absolute;width:820px;right:90px;top:330px">
 <div class="callout" style="left:770px;top:1330px;max-width:460px"><b>Side income?</b><span>Tick it as untaxed and the planner sets tax aside for you</span></div>
-<div class="brand">THE NICHELESS NICHE</div>`],
+<div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 owed: [2000,1600,`
 <div style="position:absolute;left:90px;top:150px;width:800px">
  <div class="k" style="font-size:28px">Owed to me</div>
@@ -59,7 +59,7 @@ owed: [2000,1600,`
  <p style="font-size:38px;line-height:1.4;margin-top:34px;color:#CFC8BA">Log every IOU, tick when you've reminded and when you're paid. Three ready-made scripts, gentle, clear and firm, make asking easy.</p>
 </div>
 <img class="pg" src="${img('f08.png')}" style="position:absolute;width:900px;right:90px;top:90px">
-<div class="brand">THE NICHELESS NICHE</div>`],
+<div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 how: [2000,1600,`
 <div style="position:absolute;left:90px;top:100px;right:90px">
  <div class="k" style="font-size:28px">How it works</div>
@@ -70,7 +70,7 @@ how: [2000,1600,`
  </div>
  <div style="margin-top:70px;background:#1A1C22;border-left:6px solid #D2A85C;padding:40px 48px;color:#CFC8BA;font-size:32px;line-height:1.45">
   <b>Good to know:</b> automatic totals need a PDF app that supports form calculations, such as Adobe Acrobat Reader. In some browsers you can type in every box, but totals won't update. Digital product, no physical item ships. Educational tool, not financial advice.</div>
-</div><div class="brand">THE NICHELESS NICHE</div>`],
+</div><div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 cover_gumroad: [1280,720,`
 <div style="position:absolute;left:60px;top:90px;width:600px">
  <div class="k" style="font-size:18px">Editable PDF planner</div>
@@ -97,7 +97,7 @@ leak: [1080,1080,`
  <div style="margin-top:34px;display:inline-block;background:#D2A85C;color:#111318;font-weight:700;font-size:26px;border-radius:999px;padding:12px 24px;white-space:nowrap">Example: $1,255 a year back</div>
 </div>
 <img class="pg" src="${img('fleak.png')}" style="position:absolute;width:470px;right:-30px;top:150px;transform:rotate(5deg)">
-<div style="position:absolute;left:70px;bottom:50px;font-weight:700;font-size:20px;letter-spacing:.12em;color:#D2A85C">THE NICHELESS NICHE</div>`],
+<div style="position:absolute;left:70px;bottom:50px;font-weight:700;font-size:20px;letter-spacing:.12em;color:#D2A85C"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 bundle: [1080,1080,`
 <div style="position:absolute;left:70px;top:80px;width:940px">
  <div class="k" style="font-size:22px">Bundle · Best deal</div>
@@ -109,11 +109,11 @@ bundle: [1080,1080,`
  <div class="h" style="font-size:56px;color:#fff;margin-top:14px">2027 Career Plan</div>
  <p style="font-size:26px;line-height:1.4;margin-top:18px;color:#CFC8BA">Stay, fix or go. Decide with evidence, then move.</p></div>
 <img class="pg" src="${img('f01.png')}" style="position:absolute;width:380px;right:90px;top:470px;transform:rotate(4deg)">
-<div style="position:absolute;left:70px;bottom:40px;font-weight:700;font-size:20px;letter-spacing:.12em;color:#D2A85C">THE NICHELESS NICHE</div>`],
+<div style="position:absolute;left:70px;bottom:40px;font-weight:700;font-size:20px;letter-spacing:.12em;color:#D2A85C"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 thumb: [600,600,`
 
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:300px;right:-40px;top:150px;transform:rotate(6deg)">
-<div style="position:absolute;left:44px;top:60px"><div class="k" style="font-size:16px;color:#D2A85C">Editable PDF</div>
+<div style="position:absolute;left:44px;top:60px"><img src="${img('logo.png')}" style="width:64px;height:64px;display:block;margin-bottom:18px"><div class="k" style="font-size:16px;color:#D2A85C">Editable PDF</div>
 <div class="h" style="font-size:72px;color:#fff;margin-top:12px">Financial<br>Planner<br><span style="color:#D2A85C">2027</span></div></div>`]
 };
 (async()=>{
