@@ -24,3 +24,7 @@ To try it, open `planner/index.html` in any browser.
 Pages: cover, how to use, savings goal + milestones, net worth snapshot, subscription audit, spending leaks, idle money check, owed to me (with reminder scripts), savings tracker, earnings tracker, 12 monthly budgets (6 income lines each) with no-spend calendars, year in review.
 
 Rebuild with `python3 planner/pdf/build_planner.py` (needs `reportlab` and `pypdf`).
+
+## Listing kit (`planner/listing/`)
+
+Etsy and Gumroad copy (`LISTING.md`), six 2000×1600 listing images, a Gumroad cover and thumbnail, and a sample-filled preview PDF.
