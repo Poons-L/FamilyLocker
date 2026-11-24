@@ -20,9 +20,9 @@ SHOP = "topmate.io/the_nicheless_niche"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---------- brand ----------
-INK = HexColor("#16222E"); MUTED = HexColor("#5B6872"); LINE = HexColor("#C9D3CE")
-VAULT = HexColor("#1F4A4F"); VAULT_SOFT = HexColor("#E3EEEB"); GOLD = HexColor("#C9781A")
-GOLD_SOFT = HexColor("#F8EBDA"); FIELD = HexColor("#F4F7F5"); CALC = HexColor("#FBF1E3"); PAPER = HexColor("#FFFFFF")
+INK = HexColor("#141414"); MUTED = HexColor("#5E5A52"); LINE = HexColor("#DAD4C8")
+VAULT = HexColor("#141414"); VAULT_SOFT = HexColor("#F1EEE7"); GOLD = HexColor("#A67C2E")
+GOLD_SOFT = HexColor("#F7EFDD"); FIELD = HexColor("#F6F5F1"); CALC = HexColor("#FAF3E3"); PAPER = HexColor("#FFFFFF")
 
 def reg(name, path, fallback):
     try:
@@ -229,26 +229,26 @@ def build(path, size):
     P.page_no = 1
     c.setFillColor(VAULT); c.rect(0, 0, W, H, stroke=0, fill=1)
     c.setFillColor(GOLD); c.rect(M, H * 0.62, 46, 4, stroke=0, fill=1)
-    P.text(M, H * 0.62 + 20, BRAND.upper(), F_BOLD, 10, HexColor("#F0B35E"))
-    P.text(M, 60, TAGLINE, F_DISP_I, 11, HexColor("#A9C4BF"))
+    P.text(M, H * 0.62 + 20, BRAND.upper(), F_BOLD, 10, HexColor("#D4AF5F"))
+    P.text(M, 60, TAGLINE, F_DISP_I, 11, HexColor("#B9B2A3"))
     P.text(M, H * 0.62 - 50, "Financial", F_DISP, 58, white)
     P.text(M, H * 0.62 - 110, "Planner", F_DISP, 58, white)
-    P.text(M, H * 0.62 - 190, str(YEAR), F_MONO, 64, HexColor("#F0B35E"))
-    P.text(M, H * 0.62 - 225, "Save more. Waste less. Know where every bit of money goes.", F_DISP_I, 14, HexColor("#D7E6E2"))
+    P.text(M, H * 0.62 - 190, str(YEAR), F_MONO, 64, HexColor("#D4AF5F"))
+    P.text(M, H * 0.62 - 225, "Save more. Waste less. Know where every bit of money goes.", F_DISP_I, 14, HexColor("#E8E1D0"))
     # big year glyph decoration
-    c.setStrokeColor(HexColor("#2C5D62")); c.setLineWidth(1)
+    c.setStrokeColor(HexColor("#3A3226")); c.setLineWidth(1)
     for i in range(6):
         c.circle(W - 30, H * 0.86, 70 + i * 34, stroke=1, fill=0)
     yb = 150
-    P.text(M, yb + 42, "THIS PLANNER BELONGS TO", F_BOLD, 8, HexColor("#A9C4BF"))
+    P.text(M, yb + 42, "THIS PLANNER BELONGS TO", F_BOLD, 8, HexColor("#B9B2A3"))
     P.c.acroForm.textfield(name="owner", tooltip="Your name", x=M, y=yb + 10, width=CW * 0.6, height=24, value="",
                            fontName="Helvetica", fontSize=14, borderStyle="underlined", borderWidth=0.8,
-                           borderColor=HexColor("#A9C4BF"), fillColor=HexColor("#24555A"), textColor=white, forceBorder=True)
+                           borderColor=HexColor("#B9B2A3"), fillColor=HexColor("#2B2B2B"), textColor=white, forceBorder=True)
     P.meta["owner"] = {}
-    P.text(M, yb - 18, f"MY MONEY WORD FOR {YEAR}", F_BOLD, 8, HexColor("#A9C4BF"))
+    P.text(M, yb - 18, f"MY MONEY WORD FOR {YEAR}", F_BOLD, 8, HexColor("#B9B2A3"))
     P.c.acroForm.textfield(name="word", tooltip="One word for your year, e.g. Freedom", x=M, y=yb - 50, width=CW * 0.6, height=24,
                            value="", fontName="Helvetica", fontSize=14, borderStyle="underlined", borderWidth=0.8,
-                           borderColor=HexColor("#A9C4BF"), fillColor=HexColor("#24555A"), textColor=white, forceBorder=True)
+                           borderColor=HexColor("#B9B2A3"), fillColor=HexColor("#2B2B2B"), textColor=white, forceBorder=True)
     P.meta["word"] = {}
 
     # ---------------- 2. HOW TO USE ----------------
@@ -348,7 +348,7 @@ def build(path, size):
     for i, (l, expr, n) in enumerate([("Net worth, January", 'N("as_tot_1")-N("li_tot_1")', "nw_jan"),
                                      ("Net worth, December", 'N("as_tot_2")-N("li_tot_2")', "nw_dec"),
                                      ("Change this year", 'N("nw_dec")-N("nw_jan")', "nw_chg")]):
-        P.text(xs[i], y - 26, l.upper(), F_BOLD, 7.5, HexColor("#A9C4BF"))
+        P.text(xs[i], y - 26, l.upper(), F_BOLD, 7.5, HexColor("#B9B2A3"))
         P.field(n, xs[i], y - 60, CW / 3 - 28, 24, calc=expr, size=13)
 
     # ---------------- 5. SUBSCRIPTIONS ----------------
@@ -591,10 +591,10 @@ def build(path, size):
         P.field(f"yr_tot_{j}", M + (j + 1) * (tw + 4), y, tw, 16, calc=SUM([f"yr_{m}_{j}" for m in range(12)]))
     y -= 30
     P.box(M, y - 56, CW, 52, VAULT)
-    P.text(M + 16, y - 22, "GOAL REACHED", F_BOLD, 7.5, HexColor("#A9C4BF"))
+    P.text(M + 16, y - 22, "GOAL REACHED", F_BOLD, 7.5, HexColor("#B9B2A3"))
     P.field("yr_goalpct", M + 16, y - 46, 90, 20, calc='N("goal_target")>0?N("tr_r_11")/N("goal_target")*100:0', size=12)
     P.text(M + 110, y - 40, "%", F_BOLD, 12, white)
-    P.text(M + CW / 2, y - 22, "NET WORTH CHANGE", F_BOLD, 7.5, HexColor("#A9C4BF"))
+    P.text(M + CW / 2, y - 22, "NET WORTH CHANGE", F_BOLD, 7.5, HexColor("#B9B2A3"))
     P.field("yr_nw", M + CW / 2, y - 46, 140, 20, calc='N("nw_chg")', size=12)
     y -= 74
     for lab, n in [("My proudest money move this year", "rv_proud"), ("The biggest leak I fixed", "rv_leak"),
@@ -638,9 +638,9 @@ def build_leak_check(path, size):
     bw = (CW - 28 - 20) / 3
     for i, (l, e, n) in enumerate(cols):
         bx = M + 14 + i * (bw + 10)
-        P.text(bx, y - 26, l.upper(), F_BOLD, 7.5, HexColor("#A9C4BF"))
+        P.text(bx, y - 26, l.upper(), F_BOLD, 7.5, HexColor("#B9B2A3"))
         P.c.acroForm.textfield(name=n, tooltip=l, x=bx, y=y - 70, width=bw, height=30, value="", fontName="Helvetica", fontSize=16,
-                               borderStyle="underlined", borderWidth=0.6, borderColor=HexColor("#A9C4BF"), fillColor=HexColor("#24555A"),
+                               borderStyle="underlined", borderWidth=0.6, borderColor=HexColor("#B9B2A3"), fillColor=HexColor("#2B2B2B"),
                                textColor=white, forceBorder=True)
         P.meta[n] = dict(num=True, dec=2, calc=e); P.order.append(n)
     y -= 106
