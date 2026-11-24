@@ -19,7 +19,7 @@ To try it, open `planner/index.html` in any browser.
 
 ## Financial Planner 2027 (fillable PDF)
 
-`planner/pdf/Financial-Planner-2027-A4.pdf` and `-US-Letter.pdf`: a 23-page editable planner with a currency picker. Type into any box; gold boxes calculate automatically in Adobe Acrobat Reader and most desktop PDF apps.
+`planner/pdf/Financial-Planner-2027-A4.pdf` and `-US-Letter.pdf`: a 24-page editable planner with a currency picker. Type into any box; gold boxes calculate automatically in Adobe Acrobat Reader and most desktop PDF apps.
 
 Pages: cover, how to use, savings goal + milestones, net worth snapshot, subscription audit, spending leaks, idle money check, owed to me (with reminder scripts), savings tracker, earnings tracker, 12 monthly budgets (6 income lines each) with no-spend calendars, year in review.
 

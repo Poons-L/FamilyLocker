@@ -22,16 +22,16 @@ hero: [2000,1600,`
  <p style="font-size:40px;line-height:1.35;margin-top:34px;color:#CFC8BA;max-width:760px">Hit your savings goal, cut waste, and see where every bit of money goes.</p>
  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:46px;max-width:820px">
   <span class="badge"><i></i>Totals calculate for you</span><span class="badge"><i></i>Any currency</span>
-  <span class="badge"><i></i>23 pages</span><span class="badge"><i></i>A4 + US Letter</span></div>
+  <span class="badge"><i></i>24 pages</span><span class="badge"><i></i>A4 + US Letter</span></div>
 </div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:760px;right:70px;top:250px;transform:rotate(4deg)">
 <img class="pg" src="${img('f01.png')}" style="position:absolute;width:700px;right:430px;top:170px;transform:rotate(-5deg)">
 <div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 inside: [2000,1600,`
 <div style="position:absolute;left:90px;top:80px"><div class="k" style="font-size:28px">What's inside</div>
-<div class="h" style="font-size:96px;margin-top:14px">23 pages, one calm money system</div></div>
+<div class="h" style="font-size:96px;margin-top:14px">24 pages, one calm money system</div></div>
 <div style="position:absolute;left:90px;right:90px;top:330px;display:grid;grid-template-columns:repeat(5,1fr);gap:34px 30px">
-${[['f03','Savings goal + milestones'],['f04','Net worth snapshot'],['f05','Subscription audit'],['f06','Spending leaks'],['f07','Idle money check'],
+${[['f03','Savings goal + milestones'],['f04','Net worth snapshot'],['f05','Subscription audit'],['fbig','Big yearly costs'],['f07','Idle money check'],
    ['f08','Owed to me + scripts'],['f09','Savings tracker'],['f10','Earnings tracker'],['f11','12 monthly budgets'],['f23','Year in review']]
   .map(([f,l])=>`<div><img class="pg" src="${img(f+'.png')}" style="width:100%"><div style="font-size:26px;font-weight:700;margin-top:14px;color:#F5EFE3">${l}</div></div>`).join('')}
 </div><div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
@@ -84,7 +84,7 @@ square: [1080,1080,`
  <div class="k" style="font-size:24px">Editable PDF planner</div>
  <div class="h" style="font-size:104px;margin-top:16px">Financial Planner <span style="color:#D2A85C">2027</span></div>
  <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:30px">
-  <span class="badge" style="font-size:24px;padding:10px 20px">Totals calculate for you</span><span class="badge" style="font-size:24px;padding:10px 20px">Any currency</span><span class="badge" style="font-size:24px;padding:10px 20px">23 pages</span></div>
+  <span class="badge" style="font-size:24px;padding:10px 20px">Totals calculate for you</span><span class="badge" style="font-size:24px;padding:10px 20px">Any currency</span><span class="badge" style="font-size:24px;padding:10px 20px">24 pages</span></div>
 </div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:520px;right:60px;top:470px;transform:rotate(4deg)">
 <img class="pg" src="${img('f05.png')}" style="position:absolute;width:500px;left:80px;top:500px;transform:rotate(-4deg)">`],

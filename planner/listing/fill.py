@@ -39,8 +39,8 @@ for i,(pl,ac) in enumerate(inc,1):
     if pl: V[f"m0in_{i}_1"]=m(pl)
     if ac: V[f"m0in_{i}_2"]=m(ac)
 ti=sum(a for _,a in inc); V.update(m0in_tot_1=m(sum(p for p,_ in inc)), m0in_tot_2=m(ti))
-ex=[3200,320,900,450,300,400,180,500,600,120,150,250,100,150]
-ac=[3200,298,964,410,300,400,95,380,455,60,140,190,85,120]
+ex=[3200,320,900,450,300,400,120,250,100,180,500,600,150,250,300,100,50,150]
+ac=[3200,298,964,410,300,400,60,250,45,95,380,455,140,190,120,85,50,120]
 for i,(p,a) in enumerate(zip(ex,ac),1):
     V.update({f"m0ex_{i}_1":m(p), f"m0ex_{i}_2":m(a), f"m0ex_{i}_3":m(p-a)})
 te=sum(ac); V.update(m0ex_tot_1=m(sum(ex)), m0ex_tot_2=m(te), m0ex_tot_3=m(sum(ex)-te))
@@ -63,6 +63,11 @@ r2=0
 for k in range(2):
     r2+=earned[k]; V.update({f"er_pl_{k}":m(12640), f"er_ac_{k}":m(earned[k]), f"er_run_{k}":m(r2), f"er_sv_{k}":m(saved[k]), f"er_rate_{k}":f"{saved[k]/earned[k]*100:.0f}"})
 
+big=[("Holidays and travel","Dec",3600,900),("Insurance premiums","Mar",1800,450),("Medical check-ups and dental","Jun",600,150),("Festivals and celebrations","Oct",1200,300),("Car servicing and registration","Aug",900,225)]
+for i,(n,d,a,sv) in enumerate(big,1):
+    V.update({f"by_{i}_1":d, f"by_{i}_2":m(a), f"by_{i}_3":m(a/12), f"by_{i}_4":m(sv)})
+ta=sum(x[2] for x in big); tsv=sum(x[3] for x in big)
+V.update(by_tot_2=m(ta), by_tot_3=m(ta/12), by_tot_4=m(tsv), by_pm=m(ta/12), by_left=m(ta-tsv))
 rd=PdfReader(src); w=PdfWriter(clone_from=rd)
 for pg in w.pages:
     names={a.get_object().get("/T") for a in pg.get("/Annots",[])}

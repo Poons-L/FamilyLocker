@@ -406,6 +406,26 @@ def build(path, size):
         P.text(M + 18, y - 8, t, F_BODY, 10, INK)
         y -= 20
 
+    # ---------------- BIG YEARLY COSTS ----------------
+    y = P.page("Big yearly costs", "No more surprises",
+               "Holidays, premiums, festivals, school fees. They don't come every month, so they ambush the months they do. Spread each one across the year and it stops being a shock.")
+    bw_ = CW - 90 - 3 * 86 - 16
+    y = P.table(M, y - 8, [("Cost", bw_, "text"), ("Due in", 90, "text"), ("Yearly amount", 86, "num"),
+                           ("Set aside / month", 86, "calc", lambda q: f'N("{q}2")/12'),
+                           ("Saved so far", 86, "num")],
+                14, "by", rh=21, total={2, 3, 4},
+                defaults=["Holidays and travel", "Insurance premiums", "Medical check-ups and dental", "Festivals and celebrations",
+                          "Birthdays and weddings", "School fees and books", "Car servicing and registration", "Home repairs and maintenance",
+                          "Yearly subscriptions", "Professional fees and courses", "Gadgets and replacements", "", "", ""])
+    P.box(M, y - 58, CW, 52)
+    P.text(M + 16, y - 26, "MOVE THIS INTO A SEPARATE POT EVERY PAYDAY", F_BOLD, 7.5, GOLD)
+    P.field("by_pm", M + 16, y - 50, 160, 18, calc='N("by_tot_3")', size=11)
+    P.text(M + 186, y - 45, "a month", F_DISP_I, 10, MUTED)
+    P.text(W - M - 160, y - 26, "STILL TO SAVE THIS YEAR", F_BOLD, 7.5, GOLD)
+    P.field("by_left", W - M - 160, y - 50, 144, 18, calc='Math.max(0,N("by_tot_2")-N("by_tot_4"))', size=11)
+    y -= 72
+    P.note(M, y, CW, "when the holiday or the premium arrives, the money is already sitting there. That's the whole trick. In the month you pay, log it under 'Travel and holidays' or 'Insurance' on that month's page.")
+
     # ---------------- 7. IDLE MONEY ----------------
     y = P.page("Idle money check", "Make it work",
                "Money in an account paying close to nothing loses value to inflation every year. Keep a safety net you can reach fast, then give the rest a job.")
@@ -526,7 +546,8 @@ def build(path, size):
     # ---------------- 10-21. MONTHLY PAGES ----------------
     INC = ["Salary / main income", "Bonus or commission", "Side income / freelance", "Interest and dividends", "Rental income", "Other"]
     EXP = ["Rent or mortgage", "Utilities and phone", "Groceries", "Transport", "Insurance", "Debt repayments",
-           "Subscriptions", "Eating out", "Shopping", "Health", "Personal care", "Entertainment", "Gifts", "Other"]
+           "Medical and health", "Kids and education", "Home and repairs", "Subscriptions", "Eating out", "Shopping",
+           "Personal care", "Entertainment", "Travel and holidays", "Gifts", "Charity and festivals", "Other"]
     for m in range(12):
         p = f"m{m}"
         y = P.page(f"{MONTHS[m]} {YEAR}", f"Month {m+1} of 12")
@@ -543,7 +564,7 @@ def build(path, size):
         for i, dname in enumerate(["M", "T", "W", "T", "F", "S", "S"]):
             P.text(cx + i * cell + cell / 2, y - 16, dname, F_BOLD, 7.5, MUTED, "center")
         weeks = calendar.Calendar(0).monthdayscalendar(YEAR, m + 1)
-        ch = 22
+        ch = 22 if len(weeks) < 6 else 18.5
         days = []
         for wi, wk in enumerate(weeks):
             for di, dd in enumerate(wk):
@@ -561,7 +582,7 @@ def build(path, size):
         ew = CW - 3 * 90 - 12
         y = P.table(M, y - 10, [("Category", ew, "text"), ("Planned", 90, "num"), ("Actual", 90, "num"),
                                 ("Left (+) / over (-)", 90, "calc", lambda q: f'N("{q}1")-N("{q}2")')],
-                    len(EXP), f"{p}ex", rh=17.5, defaults=EXP, total={1, 2, 3})
+                    len(EXP), f"{p}ex", rh=16, defaults=EXP, total={1, 2, 3})
         # summary band
         P.box(M, y - 54, CW, 50, VAULT_SOFT)
         taxexpr = "(" + "+".join(f'(C("{p}in_{r}_3")?N("{p}in_{r}_2"):0)' for r in range(1, 7)) + ')*N("tax_rate")/100'
