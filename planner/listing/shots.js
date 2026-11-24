@@ -49,7 +49,7 @@ monthly: [2000,1600,`
  <div class="h" style="font-size:96px;margin-top:14px">Type it once. Everything else adds up.</div></div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:820px;left:90px;top:330px">
 <img class="pg" src="${img('f10.png')}" style="position:absolute;width:820px;right:90px;top:330px">
-<div class="callout" style="left:770px;top:1330px;max-width:460px"><b>6 income lines</b><span>salary, bonus, side hustle, dividends, rent and more</span></div>
+<div class="callout" style="left:770px;top:1330px;max-width:460px"><b>Side income?</b><span>Tick it as untaxed and the planner sets tax aside for you</span></div>
 <div class="brand">DIGITLOCKA</div>`],
 owed: [2000,1600,`
 <div style="position:absolute;left:90px;top:150px;width:800px">
@@ -78,6 +78,15 @@ cover_gumroad: [1280,720,`
 </div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:400px;right:50px;top:110px;transform:rotate(4deg)">
 <img class="pg" src="${img('f01.png')}" style="position:absolute;width:380px;right:270px;top:70px;transform:rotate(-5deg)">`],
+square: [1080,1080,`
+<div style="position:absolute;left:70px;top:80px;width:940px">
+ <div class="k" style="font-size:24px">Editable PDF planner</div>
+ <div class="h" style="font-size:104px;margin-top:16px">Financial Planner <span style="color:#C9781A">2027</span></div>
+ <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:30px">
+  <span class="badge" style="font-size:24px;padding:10px 20px">Totals calculate for you</span><span class="badge" style="font-size:24px;padding:10px 20px">Any currency</span><span class="badge" style="font-size:24px;padding:10px 20px">23 pages</span></div>
+</div>
+<img class="pg" src="${img('f11.png')}" style="position:absolute;width:520px;right:60px;top:470px;transform:rotate(4deg)">
+<img class="pg" src="${img('f05.png')}" style="position:absolute;width:500px;left:80px;top:500px;transform:rotate(-4deg)">`],
 thumb: [600,600,`
 <div style="position:absolute;inset:0;background:#1F4A4F"></div>
 <img class="pg" src="${img('f11.png')}" style="position:absolute;width:300px;right:-40px;top:150px;transform:rotate(6deg)">

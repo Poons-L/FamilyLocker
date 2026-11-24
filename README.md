@@ -27,4 +27,4 @@ Rebuild with `python3 planner/pdf/build_planner.py` (needs `reportlab` and `pypd
 
 ## Listing kit (`planner/listing/`)
 
-Etsy and Gumroad copy (`LISTING.md`), six 2000×1600 listing images, a Gumroad cover and thumbnail, and a sample-filled preview PDF.
+Gumroad + Topmate copy (`LISTING.md`), six 2000×1600 listing images, Gumroad cover and thumbnail, a square Topmate image, and a sample-filled preview PDF.

@@ -78,9 +78,9 @@ class Planner:
         if calc:
             self.order.append(name)
 
-    def check(self, name, x, y, s=10, tip=None):
+    def check(self, name, x, y, s=10, tip=None, checked=False):
         assert name not in self.meta, name
-        self.c.acroForm.checkbox(name=name, tooltip=tip or name, x=x, y=y, size=s, buttonStyle="check",
+        self.c.acroForm.checkbox(name=name, tooltip=tip or name, x=x, y=y, size=s, buttonStyle="check", checked=checked,
                                  borderColor=VAULT, fillColor=PAPER, textColor=VAULT, borderWidth=0.8, forceBorder=True)
         self.meta[name] = dict(check=True)
 
@@ -112,7 +112,7 @@ class Planner:
     def box(self, x, y, w, h, fill=VAULT_SOFT, r=6):
         self.c.setFillColor(fill); self.c.roundRect(x, y, w, h, r, stroke=0, fill=1)
 
-    def table(self, x, y, cols, rows, prefix, rh=17, defaults=None, total=None):
+    def table(self, x, y, cols, rows, prefix, rh=17, defaults=None, total=None, checked=()):
         """cols: list of (header, width, kind, extra). kind: text|num|calc|check.
         calc extra: function(row_prefix) -> js expression. Returns y below table."""
         hx = x
@@ -128,7 +128,7 @@ class Planner:
             for ci, (head, w, kind, *extra) in enumerate(cols):
                 n = f"{prefix}_{r+1}_{ci}"
                 if kind == "check":
-                    self.check(n, hx + w / 2 - 5, y + 3, 10)
+                    self.check(n, hx + w / 2 - 5, y + 3, 10, checked=(r + 1, ci) in checked)
                 elif kind == "text":
                     dv = defaults[r] if (defaults and ci == 0 and r < len(defaults)) else ""
                     self.field(n, hx, y, w, rh - 3, value=dv)
@@ -198,12 +198,12 @@ def postprocess(path, meta, order):
                 obj[NameObject("/AA")] = aa
     af = w._root_object["/AcroForm"]
     af[NameObject("/CO")] = ArrayObject([refs[n] for n in order if n in refs])
-    af[NameObject("/NeedAppearances")] = BooleanObject(True)
+    af[NameObject("/NeedAppearances")] = BooleanObject(False)  # keep stored appearances so checkbox borders show in Chrome/Edge
     w._root_object[NameObject("/PageMode")] = NameObject("/UseNone")
     with open(path, "wb") as f:
         w.write(f)
 
-NON_MONEY = ("og_", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
+NON_MONEY = ("og_", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
 def is_money(n):
     if n.startswith("og_") and n.endswith("_2"): return False   # months away
     if n.startswith("ac_") and n.endswith("_2"): return False   # rate %
@@ -256,7 +256,7 @@ def build(path, size):
         ("Plug spending leaks", "Shopping, takeaways, impulse buys. Set a target you can live with and watch the yearly saving add up."),
         ("Wake up idle money", "Cash earning almost nothing? Compare rates and give each pot of money a job."),
         ("Collect what you're owed", "Track every IOU. Use the ready-made reminder scripts so asking feels easy."),
-        ("Budget every month", "Add your earnings, plan your spending, then track actuals. Your earnings and savings pages fill in by themselves."),
+        ("Budget every month", "Add your earnings (tick any with no tax taken out), plan your spending, then track actuals. Your earnings and savings pages fill in by themselves."),
     ]
     y -= 10
     for i, (h, d) in enumerate(steps):
@@ -277,7 +277,13 @@ def build(path, size):
                         fieldFlags="combo edit", x=W - M - 130, y=y - 44, width=116, height=24, fontName="Helvetica", fontSize=12,
                         borderColor=VAULT, fillColor=PAPER, textColor=INK, borderWidth=0.8, forceBorder=True)
     P.meta["cur"] = {}
-    y -= 76
+    y -= 70
+    P.box(M, y - 70, CW, 70, VAULT_SOFT)
+    P.text(M + 14, y - 22, "Set aside for tax on side income", F_BOLD, 11, INK)
+    P.wrap(M + 14, y - 38, "Freelance, side-hustle and rental income usually has no tax taken out. Enter the % you want to put aside (check your local rules). Each month, tick 'Untaxed' next to that income and the planner reserves it for you.", CW - 180, size=9.5)
+    P.field("tax_rate", W - M - 130, y - 46, 80, 24, num=True, dec=0, size=12, tip="Percent to set aside, e.g. 20")
+    P.text(W - M - 44, y - 39, "%", F_BOLD, 12, INK)
+    y -= 92
     P.text(M, y, "Tip: save the file after every session so your numbers stay put.", F_DISP_I, 11, MUTED)
 
     # ---------------- 3. MY GOAL ----------------
@@ -504,11 +510,11 @@ def build(path, size):
         p = f"m{m}"
         y = P.page(f"{MONTHS[m]} {YEAR}", f"Month {m+1} of 12")
         y -= 8
-        leftw = CW * 0.58
+        leftw = CW * 0.62
         # income
         P.text(M, y, "INCOME", F_BOLD, 8, GOLD)
-        yi = P.table(M, y - 10, [("Source", leftw - 2 * 72 - 8, "text"), ("Planned", 72, "num"), ("Actual", 72, "num")],
-                     6, f"{p}in", rh=18, defaults=INC, total={1, 2})
+        yi = P.table(M, y - 10, [("Source", leftw - 2 * 62 - 40 - 12, "text"), ("Planned", 62, "num"), ("Actual", 62, "num"), ("Untaxed", 40, "check")],
+                     6, f"{p}in", rh=18, defaults=INC, total={1, 2}, checked={(3, 3), (5, 3)})
         # calendar on right
         cx = M + leftw + 20; cwid = CW - leftw - 20
         P.text(cx, y, "NO-SPEND DAYS", F_BOLD, 8, GOLD)
@@ -537,14 +543,16 @@ def build(path, size):
                     len(EXP), f"{p}ex", rh=17.5, defaults=EXP, total={1, 2, 3})
         # summary band
         P.box(M, y - 54, CW, 50, VAULT_SOFT)
+        taxexpr = "(" + "+".join(f'(C("{p}in_{r}_3")?N("{p}in_{r}_2"):0)' for r in range(1, 7)) + ')*N("tax_rate")/100'
         sx = [(f"Income", f'N("{p}in_tot_2")', f"{p}_inc"), ("Spent", f'N("{p}ex_tot_2")', f"{p}_spent"),
-              ("Left over", f'N("{p}in_tot_2")-N("{p}ex_tot_2")', f"{p}_left")]
-        sw4 = (CW - 28 - 30) / 4
+              ("Set aside for tax", taxexpr, f"{p}_tax"),
+              ("Left over", f'N("{p}in_tot_2")-N("{p}ex_tot_2")-N("{p}_tax")', f"{p}_left")]
+        sw4 = (CW - 28 - 40) / 5
         for i, (l, e, n) in enumerate(sx):
             bx = M + 14 + i * (sw4 + 10)
             P.text(bx, y - 18, l.upper(), F_BOLD, 7.5, VAULT)
             P.field(n, bx, y - 44, sw4, 20, calc=e, size=11)
-        bx = M + 14 + 3 * (sw4 + 10)
+        bx = M + 14 + 4 * (sw4 + 10)
         P.text(bx, y - 18, "MOVED TO SAVINGS", F_BOLD, 7.5, GOLD)
         P.field(f"{p}_saved", bx, y - 44, sw4, 20, num=True, size=11, tip="What you moved to savings this month")
         y -= 70

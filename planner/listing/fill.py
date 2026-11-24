@@ -44,7 +44,8 @@ ac=[3200,298,964,410,300,400,95,380,455,60,140,190,85,120]
 for i,(p,a) in enumerate(zip(ex,ac),1):
     V.update({f"m0ex_{i}_1":m(p), f"m0ex_{i}_2":m(a), f"m0ex_{i}_3":m(p-a)})
 te=sum(ac); V.update(m0ex_tot_1=m(sum(ex)), m0ex_tot_2=m(te), m0ex_tot_3=m(sum(ex)-te))
-V.update(m0_inc=m(ti), m0_spent=m(te), m0_left=m(ti-te), m0_saved=m(6500), m0_win="Cancelled 4 subscriptions in one evening",
+V.update(tax_rate="20", m0in_3_3="/Yes", m0in_5_3="/Yes", m0_tax=m(920*0.2))
+V.update(m0_inc=m(ti), m0_spent=m(te), m0_left=m(ti-te-920*0.2), m0_saved=m(6500), m0_win="Cancelled 4 subscriptions in one evening",
          m0_next="Cook at home 4 nights a week")
 nsd=[3,5,6,10,12,13,17,19,24,26,27,31]
 for d in nsd: V[f"m0_ns_{d}"]="/Yes"
