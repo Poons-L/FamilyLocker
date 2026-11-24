@@ -98,7 +98,11 @@ export async function joinInvite(form: FormData) {
     if (err) back(err);
   }
   const { error } = await supabase.rpc('accept_invitation', { token });
-  if (error) back(error.message);
+  if (error) {
+    back(/another family/i.test(error.message)
+      ? "You're already part of another family on FamilyOS. Being in more than one family with the same login is coming soon. We'll let you know."
+      : error.message);
+  }
   revalidatePath('/');
   redirect('/?joined=1');
 }
@@ -125,6 +129,7 @@ export async function updateItem(form: FormData) {
     reference_hint: text(form, 'reference') || null, expires_on: text(form, 'expires') || null,
     is_critical: form.get('critical') === 'on', notes: text(form, 'notes') || null,
     responsible_person_id: valid(text(form, 'responsible')), backup_person_id: valid(text(form, 'backup')),
+    release_to_successor: form.get('release') === 'on',
     visibility: canOpen.length ? 'shared' : 'private', last_verified_on: new Date().toISOString().slice(0, 10),
   }).eq('id', id).select('id');
   if (error || !updated?.length) back("You can't change this one. Only its owner can.");
@@ -209,4 +214,48 @@ export async function addItem(form: FormData) {
   });
   revalidatePath('/');
   redirect('/');
+}
+
+// ---------- named successor ----------
+async function household() {
+  const d = await loadHousehold();
+  if (!hasHousehold(d)) redirect('/');
+  return d;
+}
+
+export async function setSuccessor(form: FormData) {
+  const d = await household();
+  const person = text(form, 'person') || null;
+  const supabase = await serverClient();
+  const { error } = await supabase.rpc('set_successor', { hh: d.householdId, person });
+  if (error) redirect('/people?error=' + encodeURIComponent(error.message));
+  revalidatePath('/');
+  redirect('/people?successor=1');
+}
+
+export async function requestHandover() {
+  const d = await household();
+  const supabase = await serverClient();
+  const { error } = await supabase.rpc('request_handover', { hh: d.householdId });
+  if (error) redirect('/?error=' + encodeURIComponent(error.message));
+  revalidatePath('/');
+  redirect('/');
+}
+
+export async function cancelHandover() {
+  const d = await household();
+  const supabase = await serverClient();
+  const { error } = await supabase.rpc('cancel_handover', { hh: d.householdId });
+  if (error) redirect('/?error=' + encodeURIComponent(error.message));
+  revalidatePath('/');
+  redirect('/?cancelled=1');
+}
+
+export async function completeHandover() {
+  const d = await household();
+  const supabase = await serverClient();
+  const { error } = await supabase.rpc('complete_handover', { hh: d.householdId });
+  if (error) redirect((d.isAdmin ? '/people' : '/') + '?error=' + encodeURIComponent(error.message));
+  revalidatePath('/');
+  redirect('/?handover=1');
 }

@@ -56,6 +56,8 @@ export interface Item {
   critical: boolean;
   emergencies: EmergencyKind[];
   afterDeath?: AfterDeathWish;
+  /** Owner has set this aside for their named successor (PRD §25 emergency pre-authorised). */
+  releaseToSuccessor?: boolean;
   notes?: string;
 }
 

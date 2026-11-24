@@ -8,6 +8,8 @@ export interface HouseholdData {
   householdName: string;
   meId: string;
   isAdmin: boolean;
+  successorId: string | null;
+  handoverRequestedAt: string | null;
   people: Record<string, Person>;
   items: Item[];
 }
@@ -16,7 +18,7 @@ type ItemRow = {
   id: string; created_by: string; title: string; category: Category; owner_person_id: string;
   physical_location: string | null; external_location: string | null; reference_hint: string | null;
   expires_on: string | null; last_verified_on: string; responsible_person_id: string | null; backup_person_id: string | null;
-  is_critical: boolean; emergency_kinds: string[]; notes: string | null;
+  is_critical: boolean; emergency_kinds: string[]; notes: string | null; release_to_successor: boolean;
   item_knows: { person_id: string }[]; item_access: { person_id: string }[];
 };
 
@@ -27,7 +29,7 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
 
   const { data: membership } = await supabase
     .from('household_members')
-    .select('household_id, person_id, role, households(name)')
+    .select('household_id, person_id, role, households(name, successor_person_id, handover_requested_at)')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();
@@ -37,7 +39,7 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
   const [{ data: peopleRows }, { data: itemRows }] = await Promise.all([
     supabase.from('people').select('id, display_name, full_name, relationship, user_id').eq('household_id', hh).order('created_at'),
     supabase.from('items')
-      .select('id, created_by, title, category, owner_person_id, physical_location, external_location, reference_hint, expires_on, last_verified_on, responsible_person_id, backup_person_id, is_critical, emergency_kinds, notes, item_knows(person_id), item_access(person_id)')
+      .select('id, created_by, title, category, owner_person_id, physical_location, external_location, reference_hint, expires_on, last_verified_on, responsible_person_id, backup_person_id, is_critical, emergency_kinds, notes, release_to_successor, item_knows(person_id), item_access(person_id)')
       .eq('household_id', hh).order('created_at'),
   ]);
 
@@ -54,14 +56,15 @@ export async function loadHousehold(): Promise<HouseholdData | { userId: string 
       location: [r.physical_location, r.external_location].filter(Boolean).join(' · '),
       reference: r.reference_hint ?? undefined, expiresOn: r.expires_on ?? undefined, lastVerifiedOn: r.last_verified_on,
       knows, canOpen, responsibleId: r.responsible_person_id, backupId: r.backup_person_id,
-      critical: r.is_critical, emergencies: (r.emergency_kinds ?? []) as Item['emergencies'], notes: r.notes ?? undefined,
+      critical: r.is_critical, emergencies: (r.emergency_kinds ?? []) as Item['emergencies'], notes: r.notes ?? undefined, releaseToSuccessor: r.release_to_successor,
     };
   });
 
-  const households = membership.households as unknown as { name: string } | null;
+  const households = membership.households as unknown as { name: string; successor_person_id: string | null; handover_requested_at: string | null } | null;
   return {
     userId: user.id, householdId: hh, householdName: households?.name ?? 'Our family',
     meId: membership.person_id as string, isAdmin: membership.role === 'admin', people, items,
+    successorId: households?.successor_person_id ?? null, handoverRequestedAt: households?.handover_requested_at ?? null,
   };
 }
 

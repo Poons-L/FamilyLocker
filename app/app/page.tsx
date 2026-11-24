@@ -1,7 +1,7 @@
 // Family Home (PRD §16), plus the signed-out landing page and first-run setup (PRD §42).
 import Link from 'next/link';
 import { Nav } from './nav';
-import { createHousehold } from './actions';
+import { cancelHandover, completeHandover, createHousehold, requestHandover } from './actions';
 import { hasHousehold, loadHousehold } from '@/lib/household';
 import { supabaseConfigured } from '@/lib/supabase/server';
 import { continuityScore, dependsOn, findGaps, isSinglePointOfFailure, topActions } from '@/lib/readiness';
@@ -10,8 +10,8 @@ import type { HouseholdData } from '@/lib/household';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string; joined?: string; saved?: string }> }) {
-  const { error, joined, saved } = await searchParams;
+export default async function Home({ searchParams }: { searchParams: Promise<{ error?: string; joined?: string; saved?: string; handover?: string; cancelled?: string }> }) {
+  const { error, joined, saved, handover, cancelled } = await searchParams;
   if (!supabaseConfigured()) return <Landing />;
   const d = await loadHousehold();
 
@@ -35,7 +35,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
     );
   }
 
-  if (!d.isAdmin) return <MemberHome d={d} joined={Boolean(joined)} />;
+  if (!d.isAdmin) return <MemberHome d={d} joined={Boolean(joined)} error={error} />;
 
   const today = new Date();
   const score = continuityScore(d.items, today);
@@ -51,6 +51,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       <Nav household={d.householdName} />
       <header><h1>{d.householdName}</h1></header>
       {saved && <p className="ok">Saved. Your readiness has been updated.</p>}
+      {handover && <p className="ok">Handover complete. You&apos;re now an owner of {d.householdName}.</p>}
+      {cancelled && <p className="ok">Handover cancelled. Nothing has changed.</p>}
+      {error && <p className="err">{error}</p>}
+      {d.handoverRequestedAt && d.successorId && (
+        <section className="panel callout" role="alert">
+          <h2>{d.people[d.successorId]?.name} has asked to take over</h2>
+          <p>They asked on {fmtDate(d.handoverRequestedAt)}. Unless you cancel, they can take over from <strong>{fmtDate(d.handoverRequestedAt, 7)}</strong> and open the things you&apos;ve set aside for them.</p>
+          <form action={cancelHandover}><button className="btn" type="submit">I&apos;m fine. Cancel this</button></form>
+        </section>
+      )}
 
       {d.items.length === 0 ? (
         <section className="panel">
@@ -137,7 +147,7 @@ function Landing() {
 }
 
 // What an invited family member sees: only what's been shared with them, and what they're asked to handle.
-function MemberHome({ d, joined }: { d: HouseholdData; joined: boolean }) {
+function MemberHome({ d, joined, error }: { d: HouseholdData; joined: boolean; error?: string }) {
   const owner = Object.values(d.people).find((p) => p.isMember && p.relationship === 'Self')?.name ?? 'Your family';
   const handle = d.items.filter((i) => i.responsibleId === d.meId);
   const backup = d.items.filter((i) => i.backupId === d.meId);
@@ -153,6 +163,8 @@ function MemberHome({ d, joined }: { d: HouseholdData; joined: boolean }) {
       <Nav household={d.householdName} />
       <header><h1>{d.householdName}</h1></header>
       {joined && <p className="ok">Welcome, {d.people[d.meId]?.name}. You&apos;ve joined {d.householdName}.</p>}
+      {error && <p className="err">{error}</p>}
+      {d.successorId === d.meId && <SuccessorPanel d={d} owner={owner} />}
       <section className="panel">
         <p className="big">{owner} has shared <strong>{d.items.length}</strong> important {d.items.length === 1 ? 'thing' : 'things'} with you.</p>
         <p className="muted">If something happens, this is where you&apos;ll find where things are and who to call.</p>
@@ -164,5 +176,40 @@ function MemberHome({ d, joined }: { d: HouseholdData; joined: boolean }) {
         {d.items.length ? <ul className="plain">{d.items.map(row)}</ul> : <p className="muted">Nothing yet. {owner} can share things with you from their FamilyOS.</p>}
       </section>
     </main>
+  );
+}
+
+function fmtDate(iso: string, addDays = 0) {
+  return new Date(new Date(iso).getTime() + addDays * 86_400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function SuccessorPanel({ d, owner }: { d: HouseholdData; owner: string }) {
+  const requested = d.handoverRequestedAt;
+  const ready = requested ? Date.now() >= new Date(requested).getTime() + 7 * 86_400_000 : false;
+  return (
+    <section className="panel">
+      <h2>You&apos;re {owner}&apos;s named successor</h2>
+      {!requested && (
+        <>
+          <p className="muted">If {owner} can&apos;t manage things (illness, an accident, or worse), you can take over. {owner} will have 7 days to cancel, and you&apos;ll get the things {owner} has set aside for you.</p>
+          <details>
+            <summary className="linkbtn">Something has happened. Ask to take over</summary>
+            <form action={requestHandover} className="stack" style={{ marginTop: 10 }}>
+              <p className="muted small">{owner} will see your request and can cancel it within 7 days.</p>
+              <button className="btn" type="submit">Yes, ask to take over</button>
+            </form>
+          </details>
+        </>
+      )}
+      {requested && !ready && (
+        <p>You asked on {fmtDate(requested)}. If {owner} doesn&apos;t cancel, you can take over from <strong>{fmtDate(requested, 7)}</strong>.</p>
+      )}
+      {requested && ready && (
+        <form action={completeHandover} className="stack">
+          <p>The 7 days have passed and {owner} hasn&apos;t cancelled.</p>
+          <button className="btn" type="submit">Take over now</button>
+        </form>
+      )}
+    </section>
   );
 }

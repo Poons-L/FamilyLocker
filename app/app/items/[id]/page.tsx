@@ -57,6 +57,10 @@ export default async function ItemPage({ params, searchParams }: { params: Promi
             <label>Expires or renews on<input name="expires" type="date" defaultValue={item.expiresOn ?? ''} /></label>
           </div>
           <label className="check"><input type="checkbox" name="critical" defaultChecked={item.critical} /> This is important. Count it in our readiness.</label>
+          <label className="check">
+            <input type="checkbox" name="release" defaultChecked={item.releaseToSuccessor} /> If I can&apos;t manage things, my successor can open this
+            {!d.successorId && <small className="muted"> (choose a successor on the People page)</small>}
+          </label>
 
           {others.length === 0 ? (
             <p className="muted">Add people on the People page to share this.</p>
