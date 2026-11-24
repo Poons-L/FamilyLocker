@@ -1,0 +1,545 @@
+"""Build the fillable 'Financial Planner 2027' PDF (A4 and US Letter).
+
+Usage:  python3 build_planner.py            -> writes both sizes next to this script
+Needs:  reportlab, pypdf
+Totals auto-calculate in Adobe Acrobat Reader and most desktop PDF apps (PDF JavaScript).
+"""
+import calendar, os, sys
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, LETTER
+from reportlab.lib.colors import HexColor, white
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, NumberObject, DictionaryObject, ArrayObject, TextStringObject, BooleanObject
+
+YEAR = 2027
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# ---------- brand ----------
+INK = HexColor("#16222E"); MUTED = HexColor("#5B6872"); LINE = HexColor("#C9D3CE")
+VAULT = HexColor("#1F4A4F"); VAULT_SOFT = HexColor("#E3EEEB"); GOLD = HexColor("#C9781A")
+GOLD_SOFT = HexColor("#F8EBDA"); FIELD = HexColor("#F4F7F5"); CALC = HexColor("#FBF1E3"); PAPER = HexColor("#FFFFFF")
+
+def reg(name, path, fallback):
+    try:
+        pdfmetrics.registerFont(TTFont(name, path)); return name
+    except Exception:
+        return fallback
+F_DISP = reg("Caladea-Bold", "/usr/share/fonts/truetype/crosextra/Caladea-Bold.ttf", "Times-Bold")
+F_DISP_I = reg("Caladea-Italic", "/usr/share/fonts/truetype/crosextra/Caladea-Italic.ttf", "Times-Italic")
+F_BODY = reg("Carlito", "/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf", "Helvetica")
+F_BOLD = reg("Carlito-Bold", "/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf", "Helvetica-Bold")
+F_MONO = reg("JBMono", "/usr/share/fonts/truetype/jetbrains-mono/JetBrainsMono-Medium.ttf", "Courier")
+
+MONTHS = [calendar.month_name[i] for i in range(1, 13)]
+MON = [calendar.month_abbr[i] for i in range(1, 13)]
+
+
+class Planner:
+    def __init__(self, path, size):
+        self.path = path
+        self.W, self.H = size
+        self.M = 40  # margin
+        self.c = canvas.Canvas(path, pagesize=size)
+        self.c.setTitle(f"Financial Planner {YEAR}")
+        self.c.setAuthor("Digitlocka")
+        self.c.setSubject("Fillable personal finance planner")
+        self.meta = {}       # field name -> dict(num, dec, calc)
+        self.order = []      # calculation order
+        self.page_no = 0
+
+    # ---------- primitives ----------
+    def text(self, x, y, s, font=None, size=10, color=INK, align="left"):
+        c = self.c; c.setFont(font or F_BODY, size); c.setFillColor(color)
+        {"left": c.drawString, "right": c.drawRightString, "center": c.drawCentredString}[align](x, y, s)
+
+    def wrap(self, x, y, s, width, font=None, size=10, color=MUTED, lead=None):
+        font = font or F_BODY; lead = lead or size * 1.35
+        words, line = s.split(), ""
+        for w in words:
+            t = (line + " " + w).strip()
+            if pdfmetrics.stringWidth(t, font, size) > width:
+                self.text(x, y, line, font, size, color); y -= lead; line = w
+            else:
+                line = t
+        if line:
+            self.text(x, y, line, font, size, color); y -= lead
+        return y
+
+    def field(self, name, x, y, w, h, num=False, dec=0, calc=None, value="", multiline=False, size=9.5, tip=None):
+        assert name not in self.meta, name
+        fill = CALC if calc else FIELD
+        flags = "multiline" if multiline else ""
+        self.c.acroForm.textfield(name=name, tooltip=tip or name, x=x, y=y, width=w, height=h, value=str(value),
+                                  fontName="Helvetica", fontSize=size, borderStyle="underlined", borderWidth=0.6,
+                                  borderColor=LINE, fillColor=fill, textColor=INK, forceBorder=True, fieldFlags=flags)
+        self.meta[name] = dict(num=num or bool(calc), dec=dec, calc=calc)
+        if calc:
+            self.order.append(name)
+
+    def check(self, name, x, y, s=10, tip=None):
+        assert name not in self.meta, name
+        self.c.acroForm.checkbox(name=name, tooltip=tip or name, x=x, y=y, size=s, buttonStyle="check",
+                                 borderColor=VAULT, fillColor=PAPER, textColor=VAULT, borderWidth=0.8, forceBorder=True)
+        self.meta[name] = dict(check=True)
+
+    # ---------- page furniture ----------
+    def page(self, title, kicker, intro=None):
+        if self.page_no:
+            self.c.showPage()
+        self.page_no += 1
+        c, W, H, M = self.c, self.W, self.H, self.M
+        c.setFillColor(VAULT); c.rect(0, H - 6, W, 6, stroke=0, fill=1)
+        self.text(M, H - M - 2, f"FINANCIAL PLANNER {YEAR}", F_BOLD, 7.5, GOLD)
+        self.text(W - M, H - M - 2, kicker.upper(), F_BOLD, 7.5, MUTED, "right")
+        self.text(M, H - M - 32, title, F_DISP, 26, VAULT)
+        y = H - M - 46
+        if intro:
+            y = self.wrap(M, y - 4, intro, W - 2 * M, size=10.5) - 4
+        # footer
+        c.setStrokeColor(LINE); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
+        self.text(M, 20, "Digitlocka", F_BOLD, 7.5, MUTED)
+        self.text(W - M, 20, str(self.page_no), F_MONO, 7.5, MUTED, "right")
+        return y
+
+    def section(self, x, y, label, w=None):
+        self.text(x, y, label.upper(), F_BOLD, 8, GOLD)
+        c = self.c; c.setStrokeColor(GOLD); c.setLineWidth(0.8)
+        c.line(x, y - 4, x + (w or (self.W - 2 * self.M)), y - 4)
+        return y - 16
+
+    def box(self, x, y, w, h, fill=VAULT_SOFT, r=6):
+        self.c.setFillColor(fill); self.c.roundRect(x, y, w, h, r, stroke=0, fill=1)
+
+    def table(self, x, y, cols, rows, prefix, rh=17, defaults=None, total=None):
+        """cols: list of (header, width, kind, extra). kind: text|num|calc|check.
+        calc extra: function(row_prefix) -> js expression. Returns y below table."""
+        hx = x
+        for head, w, kind, *_ in cols:
+            al = "left" if kind == "text" else ("center" if kind == "check" else "right")
+            tx = hx + 2 if al == "left" else (hx + w / 2 if al == "center" else hx + w - 3)
+            self.text(tx, y, head, F_BOLD, 7.5, MUTED, al)
+            hx += w + 4
+        y -= 6
+        for r in range(rows):
+            y -= rh
+            hx = x
+            for ci, (head, w, kind, *extra) in enumerate(cols):
+                n = f"{prefix}_{r+1}_{ci}"
+                if kind == "check":
+                    self.check(n, hx + w / 2 - 5, y + 3, 10)
+                elif kind == "text":
+                    dv = defaults[r] if (defaults and ci == 0 and r < len(defaults)) else ""
+                    self.field(n, hx, y, w, rh - 3, value=dv)
+                elif kind == "num":
+                    dec = extra[0] if extra else 0
+                    self.field(n, hx, y, w, rh - 3, num=True, dec=dec)
+                elif kind == "calc":
+                    fn, *rest = extra
+                    self.field(n, hx, y, w, rh - 3, calc=fn(f"{prefix}_{r+1}_"), dec=rest[0] if rest else 0)
+                hx += w + 4
+        if total:
+            y -= rh + 2
+            hx = x
+            for ci, (head, w, kind, *extra) in enumerate(cols):
+                if ci in total:
+                    names = [f"{prefix}_{r+1}_{ci}" for r in range(rows)]
+                    self.field(f"{prefix}_tot_{ci}", hx, y, w, rh - 3, calc=SUM(names), dec=extra[1] if kind == "calc" and len(extra) > 1 else (extra[0] if kind == "num" and extra else 0))
+                elif ci == 0:
+                    self.text(hx + 2, y + 4, "Total", F_BOLD, 9, INK)
+                hx += w + 4
+        return y - 10
+
+    def save(self):
+        self.c.showPage(); self.c.save()
+        postprocess(self.path, self.meta, self.order)
+
+
+# ---------- JS helpers ----------
+PRE = 'var d=this;function N(n){var f=d.getField(n);if(!f)return 0;var v=String(f.value).replace(/,/g,"");if(v==="")return 0;v=Number(v);return isNaN(v)?0:v;}function C(n){var f=d.getField(n);return f&&f.value!=="Off"&&f.value!==""?1:0;}'
+def SUM(names): return "+".join(f'N("{n}")' for n in names) or "0"
+def calc_js(expr): return PRE + f"var r=({expr});event.value=(isFinite(r)&&Math.abs(r)>0.0001)?r:\"\";"
+
+
+def postprocess(path, meta, order):
+    reader = PdfReader(path)
+    w = PdfWriter(clone_from=reader)
+    refs = {}
+    for page in w.pages:
+        for a in page.get("/Annots", []) or []:
+            obj = a.get_object()
+            name = obj.get("/T")
+            if name is None or name not in meta:
+                continue
+            m = meta[name]; refs[name] = a
+            if m.get("check"):
+                continue
+            if m.get("num"):
+                obj[NameObject("/Q")] = NumberObject(2)
+                aa = DictionaryObject()
+                dec = m.get("dec", 0)
+                aa[NameObject("/F")] = js(f'AFNumber_Format({dec},0,0,0,"",false);')
+                aa[NameObject("/K")] = js(f'AFNumber_Keystroke({dec},0,0,0,"",false);')
+                if m.get("calc"):
+                    aa[NameObject("/C")] = js(calc_js(m["calc"]))
+                    obj[NameObject("/Ff")] = NumberObject(int(obj.get("/Ff", 0)) | 1)  # read-only
+                obj[NameObject("/AA")] = aa
+    af = w._root_object["/AcroForm"]
+    af[NameObject("/CO")] = ArrayObject([refs[n] for n in order if n in refs])
+    af[NameObject("/NeedAppearances")] = BooleanObject(True)
+    w._root_object[NameObject("/PageMode")] = NameObject("/UseNone")
+    with open(path, "wb") as f:
+        w.write(f)
+
+def js(code):
+    d = DictionaryObject(); d[NameObject("/S")] = NameObject("/JavaScript"); d[NameObject("/JS")] = TextStringObject(code)
+    return d
+
+
+# ======================================================================
+def build(path, size):
+    P = Planner(path, size)
+    c, W, H, M = P.c, P.W, P.H, P.M
+    CW = W - 2 * M
+
+    # ---------------- 1. COVER ----------------
+    P.page_no = 1
+    c.setFillColor(VAULT); c.rect(0, 0, W, H, stroke=0, fill=1)
+    c.setFillColor(GOLD); c.rect(M, H * 0.62, 46, 4, stroke=0, fill=1)
+    P.text(M, H * 0.62 + 20, "DIGITLOCKA", F_BOLD, 10, HexColor("#F0B35E"))
+    P.text(M, H * 0.62 - 50, "Financial", F_DISP, 58, white)
+    P.text(M, H * 0.62 - 110, "Planner", F_DISP, 58, white)
+    P.text(M, H * 0.62 - 190, str(YEAR), F_MONO, 64, HexColor("#F0B35E"))
+    P.text(M, H * 0.62 - 225, "Save more. Waste less. Know where every bit of money goes.", F_DISP_I, 14, HexColor("#D7E6E2"))
+    # big year glyph decoration
+    c.setStrokeColor(HexColor("#2C5D62")); c.setLineWidth(1)
+    for i in range(6):
+        c.circle(W - 30, H * 0.86, 70 + i * 34, stroke=1, fill=0)
+    yb = 150
+    P.text(M, yb + 42, "THIS PLANNER BELONGS TO", F_BOLD, 8, HexColor("#A9C4BF"))
+    P.c.acroForm.textfield(name="owner", tooltip="Your name", x=M, y=yb + 10, width=CW * 0.6, height=24, value="",
+                           fontName="Helvetica", fontSize=14, borderStyle="underlined", borderWidth=0.8,
+                           borderColor=HexColor("#A9C4BF"), fillColor=HexColor("#24555A"), textColor=white, forceBorder=True)
+    P.meta["owner"] = {}
+    P.text(M, yb - 18, f"MY MONEY WORD FOR {YEAR}", F_BOLD, 8, HexColor("#A9C4BF"))
+    P.c.acroForm.textfield(name="word", tooltip="One word for your year, e.g. Freedom", x=M, y=yb - 50, width=CW * 0.6, height=24,
+                           value="", fontName="Helvetica", fontSize=14, borderStyle="underlined", borderWidth=0.8,
+                           borderColor=HexColor("#A9C4BF"), fillColor=HexColor("#24555A"), textColor=white, forceBorder=True)
+    P.meta["word"] = {}
+
+    # ---------------- 2. HOW TO USE ----------------
+    y = P.page("How to use this planner", "Start here",
+               "Type straight into any box. Shaded gold boxes work themselves out: totals, monthly targets, running balances. Save the file after each session so your numbers stay put.")
+    steps = [
+        ("Set your goal", "Pick one big savings number for the year. The planner splits it into a monthly, weekly and daily target."),
+        ("Take a snapshot", "Write down what you own and owe in January. Do it again in December and see the change."),
+        ("Audit your subscriptions", "List every repeat charge. Tick the ones you didn't use last month and decide: keep or cancel."),
+        ("Plug spending leaks", "Shopping, takeaways, impulse buys. Set a target you can live with and watch the yearly saving add up."),
+        ("Wake up idle money", "Cash earning almost nothing? Compare rates and give each pot of money a job."),
+        ("Collect what you're owed", "Track every IOU. Use the ready-made reminder scripts so asking feels easy."),
+        ("Budget every month", "Plan, then track actuals. Tick your no-spend days. Your savings tracker fills in by itself."),
+    ]
+    y -= 10
+    for i, (h, d) in enumerate(steps):
+        P.box(M, y - 34, 26, 26, VAULT, 13)
+        P.text(M + 13, y - 25, str(i + 1), F_MONO, 11, white, "center")
+        P.text(M + 40, y - 13, h, F_BOLD, 12, INK)
+        P.wrap(M + 40, y - 28, d, CW - 40, size=10)
+        y -= 50
+    y -= 6
+    P.box(M, y - 78, CW, 78, GOLD_SOFT)
+    P.text(M + 14, y - 20, "Good to know", F_BOLD, 11, INK)
+    yy = P.wrap(M + 14, y - 36, "Automatic totals work in the free Adobe Acrobat Reader and most desktop PDF apps. In some browsers and phone apps you can still type in every box, but totals may not update until you open the file in Acrobat Reader.", CW - 28, size=9.5, color=INK)
+    y -= 96
+    P.text(M, y, "Amounts work in any currency. Just use one consistently.", F_DISP_I, 11, MUTED)
+
+    # ---------------- 3. MY GOAL ----------------
+    y = P.page(f"My {YEAR} savings goal", "Goal",
+               "One clear number beats five vague wishes. Write it, price it, and break it into bites you can actually hit.")
+    y = P.section(M, y - 6, "The goal")
+    P.text(M, y - 2, "I'm saving for", F_BODY, 9, MUTED)
+    P.field("goal_name", M, y - 24, CW * 0.62, 20, size=12, tip="What you're saving for")
+    P.text(M + CW * 0.66, y - 2, "Target amount", F_BODY, 9, MUTED)
+    P.field("goal_target", M + CW * 0.66, y - 24, CW * 0.34, 20, num=True, size=12, tip="How much you want to save in the year")
+    y -= 44
+    P.text(M, y - 2, "Already saved toward it on 1 January", F_BODY, 9, MUTED)
+    P.field("goal_start", M, y - 24, CW * 0.31, 20, num=True, size=11)
+    P.text(M + CW * 0.35, y - 2, "Why this matters to me", F_BODY, 9, MUTED)
+    P.field("goal_why", M + CW * 0.35, y - 24, CW * 0.65, 20, size=10)
+    y -= 46
+    # breakdown band
+    P.box(M, y - 70, CW, 70, VAULT_SOFT)
+    labs = [("Still to save", '(N("goal_target")-N("goal_start"))', "goal_left"),
+            ("Per month", '(N("goal_target")-N("goal_start"))/12', "goal_pm"),
+            ("Per week", '(N("goal_target")-N("goal_start"))/52', "goal_pw"),
+            ("Per day", '(N("goal_target")-N("goal_start"))/365', "goal_pd")]
+    bw = (CW - 28 - 3 * 10) / 4
+    for i, (l, expr, n) in enumerate(labs):
+        bx = M + 14 + i * (bw + 10)
+        P.text(bx, y - 20, l.upper(), F_BOLD, 7.5, VAULT)
+        P.field(n, bx, y - 52, bw, 24, calc=expr, size=13, dec=0 if n != "goal_pd" else 2)
+    y -= 92
+    y = P.section(M, y, "Milestones and rewards")
+    P.wrap(M, y, "Small wins keep you going. Pick a reward for each milestone that costs little or nothing.", CW, size=9.5)
+    y -= 22
+    for i, p in enumerate([25, 50, 75, 100]):
+        P.text(M, y - 12, f"{p}%", F_MONO, 13, GOLD)
+        P.field(f"ms_amt_{p}", M + 48, y - 16, 100, 18, calc=f'N("goal_start")+(N("goal_target")-N("goal_start"))*{p/100}')
+        P.text(M + 160, y - 11, "Reward:", F_BODY, 9, MUTED)
+        P.field(f"ms_rew_{p}", M + 200, y - 16, CW - 200 - 70, 18)
+        P.check(f"ms_done_{p}", W - M - 12, y - 14, 12, tip="Reached")
+        y -= 26
+    P.text(W - M - 6, y + 112, "Done", F_BOLD, 7.5, MUTED, "right")
+    y -= 10
+    y = P.section(M, y, "Other goals this year")
+    y = P.table(M, y, [("Goal", CW - 4 * 84 - 16, "text"), ("Target", 84, "num"), ("Months away", 84, "num"),
+                       ("Saved so far", 84, "num"),
+                       ("Per month", 84, "calc", lambda p: f'(N("{p}1")-N("{p}3"))/Math.max(1,N("{p}2"))')],
+                5, "og", rh=19)
+
+    # ---------------- 4. SNAPSHOT ----------------
+    y = P.page("Money snapshot", "Net worth",
+               "What you own minus what you owe. Fill January now and December at year end. The change is your real scorecard.")
+    cw = [CW - 2 * 100 - 2 * 90 - 16, 100, 100, 90]
+    y = P.section(M, y - 6, "What I own")
+    y = P.table(M, y, [("Asset", CW - 2 * 110 - 8, "text"), (f"Jan {YEAR}", 110, "num"), (f"Dec {YEAR}", 110, "num")], 9, "as", rh=19,
+                defaults=["Everyday bank account", "Savings account", "Term / fixed deposits", "Investments and funds",
+                          "Retirement / pension", "Home or property", "Vehicle", "Other", ""], total={1, 2})
+    y = P.section(M, y - 4, "What I owe")
+    y = P.table(M, y, [("Debt", CW - 2 * 110 - 8, "text"), (f"Jan {YEAR}", 110, "num"), (f"Dec {YEAR}", 110, "num")], 6, "li", rh=19,
+                defaults=["Credit cards", "Personal loan", "Car loan", "Home loan / mortgage", "Student loan", ""], total={1, 2})
+    P.box(M, y - 76, CW, 70, VAULT)
+    xs = [M + 16, M + CW / 3 + 8, M + 2 * CW / 3]
+    for i, (l, expr, n) in enumerate([("Net worth, January", 'N("as_tot_1")-N("li_tot_1")', "nw_jan"),
+                                     ("Net worth, December", 'N("as_tot_2")-N("li_tot_2")', "nw_dec"),
+                                     ("Change this year", 'N("nw_dec")-N("nw_jan")', "nw_chg")]):
+        P.text(xs[i], y - 26, l.upper(), F_BOLD, 7.5, HexColor("#A9C4BF"))
+        P.field(n, xs[i], y - 60, CW / 3 - 28, 24, calc=expr, size=13)
+
+    # ---------------- 5. SUBSCRIPTIONS ----------------
+    y = P.page("Subscription audit", "Cut the waste",
+               "Go through your bank and card statements for the last two months and list every repeat charge. Ask one question of each: would I sign up for this again today?")
+    sw = CW - 4 * 70 - 2 * 52 - 24
+    y = P.table(M, y - 8, [("Service", sw, "text"), ("Per month", 70, "num", 2), ("Per year", 70, "calc", lambda p: f'N("{p}1")*12', 2),
+                           ("Used it last month?", 70, "check"), ("Cancel", 52, "check"),
+                           ("Saves / year", 70, "calc", lambda p: f'C("{p}4")?N("{p}1")*12:0', 2), ("Done", 52, "check")],
+                16, "sub", rh=19, total={1, 2, 5})
+    P.box(M, y - 70, CW, 64, GOLD_SOFT)
+    P.text(M + 14, y - 24, "Quick wins", F_BOLD, 10.5, INK)
+    P.wrap(M + 14, y - 40, "Cancel anything you didn't use last month. Swap yearly plans for monthly ones you can pause. Put free-trial end dates in your phone calendar the day you sign up. Share family plans where the rules allow.", CW - 28, size=9.5, color=INK)
+
+    # ---------------- 6. SPENDING LEAKS ----------------
+    y = P.page("Spending leaks", "Find the money",
+               "These are the categories where money slips out quietly. Write what you usually spend in a month, then a target you can stick to without feeling deprived.")
+    lw = CW - 4 * 88 - 16
+    y = P.table(M, y - 8, [("Category", lw, "text"), ("Usually / month", 88, "num"), ("Target / month", 88, "num"),
+                           ("Saves / month", 88, "calc", lambda p: f'Math.max(0,N("{p}1")-N("{p}2"))'),
+                           ("Saves / year", 88, "calc", lambda p: f'Math.max(0,N("{p}1")-N("{p}2"))*12')],
+                12, "lk", rh=21, total={1, 2, 3, 4},
+                defaults=["Online shopping", "Eating out and delivery", "Coffee and snacks", "Clothes and shoes", "Impulse buys",
+                          "Taxis and ride-hailing", "Entertainment and nights out", "Gadgets and gaming", "Beauty and grooming",
+                          "Alcohol", "", ""])
+    y -= 4
+    y = P.section(M, y, "Habits that help")
+    tips = ["Wait 48 hours before any non-essential purchase over a set amount.",
+            "Delete saved cards from shopping apps so every buy takes effort.",
+            "Unsubscribe from sale emails. Fewer prompts, fewer purchases.",
+            "Set a weekly cash or card limit for flexible spending."]
+    for t in tips:
+        P.check(f"habit_{tips.index(t)}", M, y - 10, 10)
+        P.text(M + 18, y - 8, t, F_BODY, 10, INK)
+        y -= 20
+
+    # ---------------- 7. IDLE MONEY ----------------
+    y = P.page("Idle money check", "Make it work",
+               "Money in an account paying close to nothing loses value to inflation every year. Keep a safety net you can reach fast, then give the rest a job.")
+    y = P.section(M, y - 6, "My accounts")
+    P.text(M, y - 4, "Best rate I can get on easy-access savings (%)", F_BODY, 9.5, MUTED)
+    P.field("best_rate", M + 230, y - 9, 60, 17, num=True, dec=2)
+    y -= 24
+    aw = CW - 5 * 76 - 20
+    y = P.table(M, y, [("Account", aw, "text"), ("Balance", 76, "num"), ("Rate %", 76, "num", 2),
+                       ("Earns / year", 76, "calc", lambda p: f'N("{p}1")*N("{p}2")/100'),
+                       ("Could earn", 76, "calc", lambda p: f'N("{p}1")*Math.max(N("{p}2"),N("best_rate"))/100'),
+                       ("Extra / year", 76, "calc", lambda p: f'N("{p}1")*Math.max(0,N("best_rate")-N("{p}2"))/100')],
+                7, "ac", rh=19, total={1, 3, 4, 5},
+                defaults=["Everyday account", "Savings account", "", "", "", "", ""])
+    y = P.section(M, y - 2, "My safety net")
+    P.text(M, y - 4, "Essential spending per month", F_BODY, 9.5, MUTED)
+    P.field("ef_month", M + 150, y - 9, 90, 17, num=True)
+    P.text(M + 262, y - 4, "x 6 months = my safety net", F_BODY, 9.5, MUTED)
+    P.field("ef_target", W - M - 100, y - 9, 100, 17, calc='N("ef_month")*6')
+    y -= 34
+    y = P.section(M, y, "Match the money to when you need it")
+    cols3 = [("Need it within a year", "High-yield savings", "Instant access, very low risk. Home for your safety net and short goals."),
+             ("Need it in 1 to 3 years", "Term or fixed deposit", "Locked for a set time at a fixed rate. Ladder a few so one matures every few months."),
+             ("Won't touch it for 5+ years", "Diversified index fund", "Grows more over time but the value moves up and down. Invest a set amount monthly.")]
+    bw3 = (CW - 20) / 3
+    for i, (when, what, why) in enumerate(cols3):
+        bx = M + i * (bw3 + 10)
+        P.box(bx, y - 104, bw3, 98, VAULT_SOFT if i != 1 else GOLD_SOFT)
+        P.text(bx + 10, y - 22, when.upper(), F_BOLD, 7.5, GOLD if i == 1 else VAULT)
+        P.text(bx + 10, y - 40, what, F_DISP, 13, INK)
+        P.wrap(bx + 10, y - 56, why, bw3 - 20, size=9, color=INK)
+    y -= 122
+    P.text(M, y, "Quarterly check-in:", F_BOLD, 10, INK)
+    for i, q in enumerate(["Mar", "Jun", "Sep", "Dec"]):
+        P.check(f"idle_q{i+1}", M + 110 + i * 70, y - 3, 11)
+        P.text(M + 126 + i * 70, y, q, F_BODY, 10, INK)
+    y -= 20
+    P.wrap(M, y, "Rates and products differ by country. Compare offers from licensed banks and fund providers, and speak to a licensed adviser before investing. This planner is educational, not financial advice.", CW, size=8.5)
+
+    # ---------------- 8. OWED TO ME ----------------
+    y = P.page("Owed to me", "Collect it",
+               "Small loans to friends and family add up, and the longer they sit the harder they are to raise. Log them here and follow up kindly and clearly.")
+    ow = CW - 120 - 3 * 70 - 2 * 52 - 28
+    y = P.table(M, y - 8, [("Who", ow, "text"), ("What for", 120, "text"), ("Amount", 70, "num"), ("Due by", 70, "text"),
+                           ("Reminded", 52, "check"), ("Paid", 52, "check"),
+                           ("Still owed", 70, "calc", lambda p: f'C("{p}5")?0:N("{p}2")')],
+                12, "iou", rh=19, total={2, 6})
+    y = P.section(M, y - 2, "Reminder scripts: copy, tweak, send")
+    scripts = [("Gentle", "Hi [name], hope you're well! Just a friendly nudge about the [amount] for [what]. Whenever suits you this week works for me. Thanks so much!"),
+               ("Clear", "Hi [name], I'm getting my finances organised this month and noticed the [amount] for [what] is still open. Could you send it by [date]? Happy to take it in two parts if that's easier."),
+               ("Firm", "Hi [name], following up again on the [amount] for [what]. I'd like to settle this by [date]. Can you let me know today when you'll send it? I value our friendship and don't want money to get in the way.")]
+    for lab, s in scripts:
+        P.text(M, y - 6, lab.upper(), F_BOLD, 8, GOLD)
+        y = P.wrap(M + 56, y - 6, s, CW - 56, size=9.5, color=INK) - 6
+
+    # ---------------- 9. SAVINGS TRACKER ----------------
+    y = P.page(f"Savings tracker {YEAR}", "Progress",
+               "The Saved column fills in from your monthly pages. Watch the running total climb toward your goal.")
+    y -= 4
+    P.text(M, y, "Goal", F_BODY, 9.5, MUTED); P.field("tr_goal", M + 32, y - 5, 110, 17, calc='N("goal_target")')
+    P.text(M + 162, y, "Monthly target", F_BODY, 9.5, MUTED); P.field("tr_pm", M + 240, y - 5, 100, 17, calc='N("goal_pm")')
+    y -= 28
+    tw = (CW - 5 * 4) / 6
+    heads = ["Month", "Target", "Saved", "Running total", "% of goal", "On track?"]
+    for i, h in enumerate(heads):
+        P.text(M + i * (tw + 4) + (2 if i == 0 else tw - 3), y, h, F_BOLD, 7.5, MUTED, "left" if i == 0 else "right")
+    y -= 6
+    for m in range(12):
+        y -= 22
+        P.text(M + 2, y + 5, MONTHS[m], F_BODY, 10.5, INK)
+        x = M + tw + 4
+        P.field(f"tr_t_{m}", x, y, tw, 18, calc=f'N("goal_pm")*{m+1}'); x += tw + 4
+        P.field(f"tr_s_{m}", x, y, tw, 18, calc=f'N("m{m}_saved")'); x += tw + 4
+        P.field(f"tr_r_{m}", x, y, tw, 18, calc=f'N("goal_start")+' + "+".join(f'N("m{k}_saved")' for k in range(m + 1))); x += tw + 4
+        P.field(f"tr_p_{m}", x, y, tw, 18, calc=f'N("goal_target")>0?N("tr_r_{m}")/N("goal_target")*100:0', dec=0); x += tw + 4
+        # on track: running - start >= target cumulative
+        P.field(f"tr_ok_{m}", x, y, tw, 18, calc=f'(N("tr_r_{m}")-N("goal_start"))-N("tr_t_{m}")')
+    y -= 18
+    P.text(M, y, "On track? shows how far ahead (+) or behind (-) your cumulative target you are.", F_BODY, 8.5, MUTED)
+    y -= 26
+    y = P.section(M, y, "Colour it in: tick a box for every 5% of your goal")
+    bs = (CW - 19 * 6) / 20
+    for i in range(20):
+        P.check(f"tr_box_{i}", M + i * (bs + 6), y - bs, bs, tip=f"{(i+1)*5}%")
+        if (i + 1) % 5 == 0:
+            P.text(M + i * (bs + 6) + bs / 2, y - bs - 12, f"{(i+1)*5}%", F_MONO, 7.5, MUTED, "center")
+
+    # ---------------- 10-21. MONTHLY PAGES ----------------
+    INC = ["Salary / main income", "Side income", "Other income", ""]
+    EXP = ["Rent or mortgage", "Utilities and phone", "Groceries", "Transport", "Insurance", "Debt repayments",
+           "Subscriptions", "Eating out", "Shopping", "Health", "Personal care", "Entertainment", "Gifts", "Other"]
+    for m in range(12):
+        p = f"m{m}"
+        y = P.page(f"{MONTHS[m]} {YEAR}", f"Month {m+1} of 12")
+        y -= 8
+        leftw = CW * 0.58
+        # income
+        P.text(M, y, "INCOME", F_BOLD, 8, GOLD)
+        yi = P.table(M, y - 10, [("Source", leftw - 2 * 72 - 8, "text"), ("Planned", 72, "num"), ("Actual", 72, "num")],
+                     4, f"{p}in", rh=18, defaults=INC, total={1, 2})
+        # calendar on right
+        cx = M + leftw + 20; cwid = CW - leftw - 20
+        P.text(cx, y, "NO-SPEND DAYS", F_BOLD, 8, GOLD)
+        cell = cwid / 7
+        for i, dname in enumerate(["M", "T", "W", "T", "F", "S", "S"]):
+            P.text(cx + i * cell + cell / 2, y - 16, dname, F_BOLD, 7.5, MUTED, "center")
+        weeks = calendar.Calendar(0).monthdayscalendar(YEAR, m + 1)
+        ch = 22
+        days = []
+        for wi, wk in enumerate(weeks):
+            for di, dd in enumerate(wk):
+                if dd:
+                    bx = cx + di * cell; by = y - 22 - (wi + 1) * ch
+                    P.text(bx + cell / 2, by + 14, str(dd), F_MONO, 6.5, MUTED, "center")
+                    P.check(f"{p}_ns_{dd}", bx + cell / 2 - 5, by + 2, 10, tip=f"{MONTHS[m]} {dd}: no spending")
+                    days.append(f"{p}_ns_{dd}")
+        yc = y - 22 - len(weeks) * ch - 14
+        P.text(cx, yc, "No-spend days", F_BODY, 9, MUTED)
+        P.field(f"{p}_nscount", cx + cwid - 44, yc - 5, 44, 16, calc="+".join(f'C("{d}")' for d in days))
+        y = min(yi, yc - 10)
+        # expenses
+        P.text(M, y, "SPENDING", F_BOLD, 8, GOLD)
+        ew = CW - 3 * 90 - 12
+        y = P.table(M, y - 10, [("Category", ew, "text"), ("Planned", 90, "num"), ("Actual", 90, "num"),
+                                ("Left (+) / over (-)", 90, "calc", lambda q: f'N("{q}1")-N("{q}2")')],
+                    len(EXP), f"{p}ex", rh=17.5, defaults=EXP, total={1, 2, 3})
+        # summary band
+        P.box(M, y - 54, CW, 50, VAULT_SOFT)
+        sx = [(f"Income", f'N("{p}in_tot_2")', f"{p}_inc"), ("Spent", f'N("{p}ex_tot_2")', f"{p}_spent"),
+              ("Left over", f'N("{p}in_tot_2")-N("{p}ex_tot_2")', f"{p}_left")]
+        sw4 = (CW - 28 - 30) / 4
+        for i, (l, e, n) in enumerate(sx):
+            bx = M + 14 + i * (sw4 + 10)
+            P.text(bx, y - 18, l.upper(), F_BOLD, 7.5, VAULT)
+            P.field(n, bx, y - 44, sw4, 20, calc=e, size=11)
+        bx = M + 14 + 3 * (sw4 + 10)
+        P.text(bx, y - 18, "MOVED TO SAVINGS", F_BOLD, 7.5, GOLD)
+        P.field(f"{p}_saved", bx, y - 44, sw4, 20, num=True, size=11, tip="What you moved to savings this month")
+        y -= 70
+        # checklist + notes
+        P.text(M, y, "THIS MONTH I", F_BOLD, 8, GOLD)
+        cl = ["Moved savings on payday", "Paid every bill on time", "Checked subscriptions", "Followed up on IOUs"]
+        for i, t in enumerate(cl):
+            P.check(f"{p}_cl_{i}", M, y - 18 - i * 17, 10)
+            P.text(M + 16, y - 16 - i * 17, t, F_BODY, 9.5, INK)
+        nx = M + CW * 0.42; nw = CW - CW * 0.42
+        P.text(nx, y, "MY WIN THIS MONTH", F_BOLD, 8, GOLD)
+        P.field(f"{p}_win", nx, y - 26, nw, 20, size=9.5)
+        P.text(nx, y - 40, "NEXT MONTH I'LL", F_BOLD, 8, GOLD)
+        P.field(f"{p}_next", nx, y - 66, nw, 20, size=9.5)
+        assert y - 72 > 40, (path, MONTHS[m], y)
+
+    # ---------------- 22. YEAR IN REVIEW ----------------
+    y = P.page("Year in review", f"December {YEAR}",
+               "Pour a cup of something nice. Look at what you did, not just what you didn't.")
+    tw = (CW - 5 * 4) / 6
+    heads = ["Month", "Income", "Spent", "Left over", "Saved", "No-spend days"]
+    y -= 6
+    for i, h in enumerate(heads):
+        P.text(M + i * (tw + 4) + (2 if i == 0 else tw - 3), y, h, F_BOLD, 7.5, MUTED, "left" if i == 0 else "right")
+    y -= 4
+    for m in range(12):
+        y -= 19
+        P.text(M + 2, y + 4, MONTHS[m], F_BODY, 10, INK)
+        for j, src in enumerate(["inc", "spent", "left", "saved", "nscount"]):
+            P.field(f"yr_{m}_{j}", M + (j + 1) * (tw + 4), y, tw, 16, calc=f'N("m{m}_{src}")')
+    y -= 22
+    P.text(M + 2, y + 4, "Total", F_BOLD, 10, INK)
+    for j in range(5):
+        P.field(f"yr_tot_{j}", M + (j + 1) * (tw + 4), y, tw, 16, calc=SUM([f"yr_{m}_{j}" for m in range(12)]))
+    y -= 30
+    P.box(M, y - 56, CW, 52, VAULT)
+    P.text(M + 16, y - 22, "GOAL REACHED", F_BOLD, 7.5, HexColor("#A9C4BF"))
+    P.field("yr_goalpct", M + 16, y - 46, 90, 20, calc='N("goal_target")>0?N("tr_r_11")/N("goal_target")*100:0', size=12)
+    P.text(M + 110, y - 40, "%", F_BOLD, 12, white)
+    P.text(M + CW / 2, y - 22, "NET WORTH CHANGE", F_BOLD, 7.5, HexColor("#A9C4BF"))
+    P.field("yr_nw", M + CW / 2, y - 46, 140, 20, calc='N("nw_chg")', size=12)
+    y -= 74
+    for lab, n in [("My proudest money move this year", "rv_proud"), ("The biggest leak I fixed", "rv_leak"),
+                   ("What I'll do differently", "rv_diff"), (f"My savings goal for {YEAR+1}", "rv_next")]:
+        P.text(M, y, lab.upper(), F_BOLD, 8, GOLD)
+        P.field(n, M, y - 26, CW, 20, size=10)
+        y -= 40
+
+    P.save()
+
+
+if __name__ == "__main__":
+    out = sys.argv[1] if len(sys.argv) > 1 else HERE
+    build(os.path.join(out, f"Financial-Planner-{YEAR}-A4.pdf"), A4)
+    build(os.path.join(out, f"Financial-Planner-{YEAR}-US-Letter.pdf"), LETTER)
+    print("built")

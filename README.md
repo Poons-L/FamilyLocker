@@ -16,3 +16,11 @@ Data is saved only in the user's own browser. Pick any currency symbol.
 To try it, open `planner/index.html` in any browser.
 
 *Educational tool, not financial advice.*
+
+## Financial Planner 2027 (fillable PDF)
+
+`planner/pdf/Financial-Planner-2027-A4.pdf` and `-US-Letter.pdf`: a 22-page editable planner. Type into any box; gold boxes calculate automatically in Adobe Acrobat Reader and most desktop PDF apps.
+
+Pages: cover, how to use, savings goal + milestones, net worth snapshot, subscription audit, spending leaks, idle money check, owed to me (with reminder scripts), savings tracker, 12 monthly budgets with no-spend calendars, year in review.
+
+Rebuild with `python3 planner/pdf/build_planner.py` (needs `reportlab` and `pypdf`).
