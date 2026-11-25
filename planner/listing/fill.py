@@ -68,6 +68,9 @@ for i,(n,d,a,sv) in enumerate(big,1):
     V.update({f"by_{i}_1":d, f"by_{i}_2":m(a), f"by_{i}_3":m(a/12), f"by_{i}_4":m(sv)})
 ta=sum(x[2] for x in big); tsv=sum(x[3] for x in big)
 V.update(by_tot_2=m(ta), by_tot_3=m(ta/12), by_tot_4=m(tsv), by_pm=m(ta/12), by_left=m(ta-tsv))
+V.update(dash_goal=m(100000), dash_saved=m(34300), dash_reached="34", dash_left=m(65700), dash_need=m(6570),
+         dash_in=m(26766), dash_out=m(14890), dash_tax=m(368), dash_sv=m(12300), dash_rate="46",
+         dash_subs=m(1374), dash_owed=m(1600), dash_big=m(675), dash_nsd="12", dash_months="2")
 rd=PdfReader(src); w=PdfWriter(clone_from=rd)
 for pg in w.pages:
     names={a.get_object().get("/T") for a in pg.get("/Annots",[])}

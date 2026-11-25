@@ -84,6 +84,14 @@ E["er_sofar"]=erun; E["er_tot_pl"]=sum(E[f"er_pl_{m}"] for m in range(12)); E["e
 E["er_tot_rate"]=E["er_tot_sv"]/E["er_tot_ac"]*100 if E["er_tot_ac"] else 0
 for j in range(5): E[f"yr_tot_{j}"]=sum(E[f"yr_{m}_{j}"] for m in range(12))
 E["yr_goalpct"]=E["tr_r_11"]/t*100; E["yr_nw"]=E["nw_chg"]
+sv_tot=sum(x(f"m{m}_saved") for m in range(12)); filled=sum(1 for m in range(12) if I.get(f"m{m}_saved","")!="")
+E.update(dash_goal=t, dash_saved=s+sv_tot, dash_reached=(s+sv_tot)/t*100, dash_left=max(0,t-(s+sv_tot)),
+  dash_need=(max(0,t-(s+sv_tot))/(12-filled)) if filled<12 else 0,
+  dash_in=sum(E[f"m{m}in_tot_2"] for m in range(12)), dash_out=sum(E[f"m{m}ex_tot_2"] for m in range(12)),
+  dash_tax=sum(E[f"m{m}_tax"] for m in range(12)), dash_sv=sv_tot,
+  dash_subs=E["sub_tot_5"], dash_leaks=E["lk_tot_4"], dash_idle=E["ac_tot_5"], dash_owed=E["iou_tot_6"], dash_big=E["by_tot_3"],
+  dash_nwj=E["nw_jan"], dash_nwd=E["nw_dec"], dash_nwc=E["nw_chg"], dash_nsd=sum(E[f"m{m}_nscount"] for m in range(12)), dash_months=filled)
+E["dash_rate"]=E["dash_sv"]/E["dash_in"]*100 if E["dash_in"] else 0
 calc=[k for k,v in F.items() if v["calc"]]
 uncovered=[k for k in calc if k not in E]
 TEXT={"goal_flag"}

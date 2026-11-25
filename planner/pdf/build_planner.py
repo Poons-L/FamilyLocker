@@ -273,7 +273,7 @@ def postprocess(path, meta, order):
     with open(path, "wb") as f:
         w.write(f)
 
-NON_MONEY = ("og_", "goal_share", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
+NON_MONEY = ("og_", "dash_reached", "dash_rate", "dash_nsd", "dash_months", "goal_share", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
 def is_money(n):
     if n.startswith("og_") and n.endswith("_2"): return False   # months away
     if n.startswith("ac_") and n.endswith("_2"): return False   # rate %
@@ -330,6 +330,51 @@ def build(path, size):
     P.text(W - M - 44, y - 39, "%", F_BOLD, 12, INK)
     y -= 92
     P.text(M, y, "Tip: save the file after every session so your numbers stay put.", F_DISP_I, 11, MUTED)
+
+    # ---------------- MY YEAR AT A GLANCE (summary) ----------------
+    y = P.page(f"My {YEAR} at a glance", "Your summary",
+               "Nothing to type here. This page fills itself in from the rest of the planner, so one look tells you where you stand.")
+    SAVED = "+".join(f'N("m{k}_saved")' for k in range(12))
+    FILLED = "+".join(f'E("m{k}_saved")' for k in range(12))
+    cards = [
+        ("Savings goal", [("Goal", 'N("goal_target")', "dash_goal"),
+                          ("Saved so far", f'N("goal_start")+{SAVED}', "dash_saved"),
+                          ("% of goal reached", f'N("goal_target")>0?(N("goal_start")+{SAVED})/N("goal_target")*100:0', "dash_reached"),
+                          ("Still to save", f'Math.max(0,N("goal_target")-(N("goal_start")+{SAVED}))', "dash_left"),
+                          ("Needed a month from now", f'(12-({FILLED}))>0?Math.max(0,N("goal_target")-(N("goal_start")+{SAVED}))/(12-({FILLED})):0', "dash_need")]),
+        ("Money in and out, year to date", [("Earned", "+".join(f'N("m{k}in_tot_2")' for k in range(12)), "dash_in"),
+                          ("Spent", "+".join(f'N("m{k}ex_tot_2")' for k in range(12)), "dash_out"),
+                          ("Set aside for tax", "+".join(f'N("m{k}_tax")' for k in range(12)), "dash_tax"),
+                          ("Moved to savings", SAVED, "dash_sv"),
+                          ("% of earnings saved", 'N("dash_in")>0?N("dash_sv")/N("dash_in")*100:0', "dash_rate")]),
+        ("Money you found", [("Subscriptions cut, a year", 'N("sub_tot_5")', "dash_subs"),
+                          ("Leaks plugged, a year", 'N("lk_tot_4")', "dash_leaks"),
+                          ("Extra interest, a year", 'N("ac_tot_5")', "dash_idle"),
+                          ("Still owed to you", 'N("iou_tot_6")', "dash_owed"),
+                          ("Yearly costs, set aside a month", 'N("by_tot_3")', "dash_big")]),
+        ("Net worth and habits", [("Net worth in January", 'N("nw_jan")', "dash_nwj"),
+                          ("Net worth in December", 'N("nw_dec")', "dash_nwd"),
+                          ("Change this year", 'N("nw_chg")', "dash_nwc"),
+                          ("No-spend days", "+".join(f'N("m{k}_nscount")' for k in range(12)), "dash_nsd"),
+                          ("Months completed (of 12)", FILLED, "dash_months")]),
+    ]
+    cw2 = (CW - 14) / 2; rh = 30
+    for i, (title, rows) in enumerate(cards):
+        cx = M + (i % 2) * (cw2 + 14)
+        if i % 2 == 0 and i:
+            y = y_next
+        top = y - 6
+        h = 34 + rh * len(rows)
+        P.box(cx, top - h, cw2, h)
+        P.text(cx + 14, top - 18, title.upper(), F_BOLD, 7.5, GOLD)
+        ry = top - 28
+        for lab, expr, n in rows:
+            ry -= rh
+            P.text(cx + 14, ry + 6, lab, F_BODY, 9.5, INK)
+            P.field(n, cx + cw2 - 14 - 90, ry + 1, 90, 20, calc=expr, size=10.5, dec=0)
+        y_next = top - h - 12
+    y = y_next - 4
+    P.note(M, y, CW, "check this page on the first Sunday of every month. If 'Needed a month from now' keeps climbing, change the plan, not your mood: stretch the deadline, find one more leak, or grow your income.")
 
     # ---------------- 3. MY GOAL ----------------
     y = P.page(f"My {YEAR} savings goal", "Goal",

@@ -50,9 +50,11 @@ Found a leak? There are usually more. The Financial Planner 2027 runs this check
 **Description:**
 Most budget templates make you do the adding up. This one doesn't.
 
-24 fillable pages. Type your numbers, and the gold boxes total themselves.
+25 fillable pages. Type your numbers, and the gold boxes total themselves.
 
 **Inside**
+- **My year at a glance:** a one-page summary that fills itself in: goal progress, money in and out, money found, net worth and habits
+- **Reality check:** tells you straight away if your goal is bigger than your pay
 - **Savings goal:** your target split into monthly, weekly and daily amounts, with milestone rewards
 - **Subscription audit and spending leaks:** find the money that slips out quietly
 - **Big yearly costs:** holidays, insurance, festivals, school fees and medical check-ups, spread into a monthly set-aside so they never ambush you
