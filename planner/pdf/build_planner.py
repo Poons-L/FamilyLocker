@@ -207,7 +207,7 @@ class Planner:
 
 
 # ---------- JS helpers ----------
-PRE = 'var d=this;function N(n){var f=d.getField(n);if(!f)return 0;var v=String(f.value).replace(/,/g,"");if(v==="")return 0;v=Number(v);return isNaN(v)?0:v;}function C(n){var f=d.getField(n);return f&&f.value!=="Off"&&f.value!==""?1:0;}'
+PRE = 'var d=this;function N(n){var f=d.getField(n);if(!f)return 0;var v=String(f.value).replace(/,/g,"");if(v==="")return 0;v=Number(v);return isNaN(v)?0:v;}function C(n){var f=d.getField(n);return f&&f.value!=="Off"&&f.value!==""?1:0;}function E(n){var f=d.getField(n);return f&&String(f.value)!==""?1:0;}'
 def SUM(names): return "+".join(f'N("{n}")' for n in names) or "0"
 def calc_js(expr): return PRE + f"var r=({expr});event.value=(isFinite(r)&&Math.abs(r)>0.0001)?r:\"\";"
 
@@ -215,7 +215,7 @@ def calc_js(expr): return PRE + f"var r=({expr});event.value=(isFinite(r)&&Math.
 def calc_order(meta, order):
     """Order calculations so every box is worked out after the boxes it reads (Acrobat runs /CO once, top to bottom)."""
     import re
-    deps = {n: [d for d in re.findall(r'[NC]\("([^"]+)"\)', meta[n]["calc"]) if meta.get(d, {}).get("calc")] for n in order}
+    deps = {n: [d for d in re.findall(r'[NCE]\("([^"]+)"\)', meta[n]["calc"]) if meta.get(d, {}).get("calc")] for n in order}
     done, out = set(), []
     def visit(n, stack=()):
         if n in done: return
@@ -238,6 +238,12 @@ def postprocess(path, meta, order):
                 continue
             m = meta[name]; refs[name] = a
             if m.get("check"):
+                continue
+            if m.get("text") and m.get("calc"):
+                aa = DictionaryObject()
+                aa[NameObject("/C")] = js(PRE + f'event.value=({m["calc"]});')
+                obj[NameObject("/AA")] = aa
+                obj[NameObject("/Ff")] = NumberObject(int(obj.get("/Ff", 0)) | 1)
                 continue
             if m.get("num"):
                 obj[NameObject("/Q")] = NumberObject(2)
@@ -267,7 +273,7 @@ def postprocess(path, meta, order):
     with open(path, "wb") as f:
         w.write(f)
 
-NON_MONEY = ("og_", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
+NON_MONEY = ("og_", "goal_share", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
 def is_money(n):
     if n.startswith("og_") and n.endswith("_2"): return False   # months away
     if n.startswith("ac_") and n.endswith("_2"): return False   # rate %
@@ -334,10 +340,12 @@ def build(path, size):
     P.text(M + CW * 0.66, y - 2, "Target amount", F_BODY, 9, MUTED)
     P.field("goal_target", M + CW * 0.66, y - 24, CW * 0.34, 20, num=True, size=12, tip="How much you want to save in the year")
     y -= 44
-    P.text(M, y - 2, "Already saved toward it on 1 January", F_BODY, 9, MUTED)
-    P.field("goal_start", M, y - 24, CW * 0.31, 20, num=True, size=11)
-    P.text(M + CW * 0.35, y - 2, "Why this matters to me", F_BODY, 9, MUTED)
-    P.field("goal_why", M + CW * 0.35, y - 24, CW * 0.65, 20, size=10)
+    P.text(M, y - 2, "Saved already on 1 January", F_BODY, 9, MUTED)
+    P.field("goal_start", M, y - 24, CW * 0.26, 20, num=True, size=11)
+    P.text(M + CW * 0.29, y - 2, "My take-home pay per month", F_BODY, 9, MUTED)
+    P.field("goal_pay", M + CW * 0.29, y - 24, CW * 0.26, 20, num=True, size=11, tip="Usual monthly pay after tax")
+    P.text(M + CW * 0.58, y - 2, "Why this matters to me", F_BODY, 9, MUTED)
+    P.field("goal_why", M + CW * 0.58, y - 24, CW * 0.42, 20, size=10)
     y -= 46
     # breakdown band
     P.box(M, y - 70, CW, 70, VAULT_SOFT)
@@ -350,7 +358,19 @@ def build(path, size):
         bx = M + 14 + i * (bw + 10)
         P.text(bx, y - 20, l.upper(), F_BOLD, 7.5, VAULT)
         P.field(n, bx, y - 52, bw, 24, calc=expr, size=13, dec=0 if n != "goal_pd" else 2)
-    y -= 92
+    y -= 84
+    P.text(M, y - 4, "REALITY CHECK", F_BOLD, 7.5, GOLD)
+    P.field("goal_share", M + 100, y - 9, 56, 17, calc='N("goal_pay")>0?N("goal_pm")/N("goal_pay")*100:0', dec=0, size=10)
+    P.text(M + 160, y - 4, "% of pay", F_DISP_I, 9.5, MUTED)
+    flag = ('N("goal_pay")<=0||N("goal_pm")<=0?"Add your take-home pay to check this goal.":'
+            '(N("goal_pm")>N("goal_pay")?"More than you earn each month. Stretch the timeline or grow income first.":'
+            '(N("goal_pm")/N("goal_pay")>0.5?"Over half your pay. Very ambitious: plan big cuts or extra income.":'
+            '(N("goal_pm")/N("goal_pay")>0.2?"A stretch, but doable on a tight budget.":"Comfortable. You could aim higher.")))')
+    P.c.acroForm.textfield(name="goal_flag", tooltip="Reality check", x=M + 210, y=y - 9, width=CW - 210, height=17, value="",
+                           fontName="Helvetica", fontSize=9.5, borderStyle="underlined", borderWidth=0.6,
+                           borderColor=LINE, fillColor=CALC, textColor=INK, forceBorder=True)
+    P.meta["goal_flag"] = dict(text=True, calc=flag); P.order.append("goal_flag")
+    y -= 30
     y = P.section(M, y, "Milestones and rewards")
     P.wrap(M, y, "Small wins keep you going. Pick a reward for each milestone that costs little or nothing.", CW, size=9.5)
     y -= 22
@@ -513,12 +533,12 @@ def build(path, size):
         x = M + tw + 4
         P.field(f"tr_t_{m}", x, y, tw, 18, calc=f'N("goal_pm")*{m+1}'); x += tw + 4
         P.field(f"tr_s_{m}", x, y, tw, 18, calc=f'N("m{m}_saved")'); x += tw + 4
-        P.field(f"tr_r_{m}", x, y, tw, 18, calc=f'N("goal_start")+' + "+".join(f'N("m{k}_saved")' for k in range(m + 1))); x += tw + 4
-        P.field(f"tr_p_{m}", x, y, tw, 18, calc=f'N("goal_target")>0?N("tr_r_{m}")/N("goal_target")*100:0', dec=0); x += tw + 4
-        # on track: running - start >= target cumulative
-        P.field(f"tr_ok_{m}", x, y, tw, 18, calc=f'(N("tr_r_{m}")-N("goal_start"))-N("tr_t_{m}")')
+        has = f'E("m{m}_saved")'   # only judge months that have been filled in
+        P.field(f"tr_r_{m}", x, y, tw, 18, calc=f'{has}?N("goal_start")+' + "+".join(f'N("m{k}_saved")' for k in range(m + 1)) + ':0'); x += tw + 4
+        P.field(f"tr_p_{m}", x, y, tw, 18, calc=f'{has}&&N("goal_target")>0?N("tr_r_{m}")/N("goal_target")*100:0', dec=0); x += tw + 4
+        P.field(f"tr_ok_{m}", x, y, tw, 18, calc=f'{has}?(N("tr_r_{m}")-N("goal_start"))-N("tr_t_{m}"):0')
     y -= 18
-    P.text(M, y, "On track? shows how far ahead (+) or behind (-) your cumulative target you are.", F_BODY, 8.5, MUTED)
+    P.text(M, y, "On track? appears once you fill in that month's savings: how far ahead (+) or behind (-) your target you are.", F_BODY, 8.5, MUTED)
     y -= 26
     y = P.section(M, y, "Colour it in: tick a box for every 5% of your goal")
     bs = (CW - 19 * 6) / 20
@@ -545,7 +565,7 @@ def build(path, size):
         x = M + tw + 4
         P.field(f"er_pl_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_1")'); x += tw + 4
         P.field(f"er_ac_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")'); x += tw + 4
-        P.field(f"er_run_{m}", x, y, tw, 18, calc="+".join(f'N("m{k}in_tot_2")' for k in range(m + 1))); x += tw + 4
+        P.field(f"er_run_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")!==0?' + "+".join(f'N("m{k}in_tot_2")' for k in range(m + 1)) + ':0'); x += tw + 4
         P.field(f"er_sv_{m}", x, y, tw, 18, calc=f'N("m{m}_saved")'); x += tw + 4
         P.field(f"er_rate_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")>0?N("m{m}_saved")/N("m{m}in_tot_2")*100:0')
     y -= 24
@@ -646,7 +666,7 @@ def build(path, size):
     y -= 30
     P.box(M, y - 56, CW, 52, VAULT)
     P.text(M + 16, y - 22, "GOAL REACHED", F_BOLD, 7.5, HexColor("#B9B2A3"))
-    P.field("yr_goalpct", M + 16, y - 46, 90, 20, calc='N("goal_target")>0?N("tr_r_11")/N("goal_target")*100:0', size=12)
+    P.field("yr_goalpct", M + 16, y - 46, 90, 20, calc='N("goal_target")>0?(N("goal_start")+' + "+".join(f'N("m{k}_saved")' for k in range(12)) + ')/N("goal_target")*100:0', size=12)
     P.text(M + 110, y - 40, "%", F_BOLD, 12, white)
     P.text(M + CW / 2, y - 22, "NET WORTH CHANGE", F_BOLD, 7.5, HexColor("#B9B2A3"))
     P.field("yr_nw", M + CW / 2, y - 46, 140, 20, calc='N("nw_chg")', size=12)

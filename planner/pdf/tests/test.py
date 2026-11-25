@@ -6,7 +6,7 @@ def put(n,v):
     assert n in F, n; I[n]=v
 # ---- inputs across every page ----
 put("cur","S$"); put("tax_rate","20")
-put("goal_target","100000"); put("goal_start","22000")
+put("goal_target","100000"); put("goal_start","22000"); put("goal_pay","15000")
 for r in range(1,6): put(f"og_{r}_1",str(random.randint(1000,9000))); put(f"og_{r}_2",str(random.randint(0,12))); put(f"og_{r}_3",str(random.randint(0,900)))
 for r in range(1,10): put(f"as_{r}_1",str(random.randint(0,90000))); put(f"as_{r}_2",str(random.randint(0,90000)))
 for r in range(1,7): put(f"li_{r}_1",str(random.randint(0,40000))); put(f"li_{r}_2",str(random.randint(0,40000)))
@@ -42,6 +42,7 @@ def chk(name): return 1 if I.get(name, "Yes" if F[name]["v"]=="/Yes" else "Off")
 E={}
 t,s=x("goal_target"),x("goal_start")
 E.update(goal_left=t-s,goal_pm=(t-s)/12,goal_pw=(t-s)/52,goal_pd=(t-s)/365)
+pay=x("goal_pay"); E["goal_share"]=E["goal_pm"]/pay*100 if pay>0 else 0
 for p in (25,50,75,100): E[f"ms_amt_{p}"]=s+(t-s)*p/100
 for r in range(1,6): E[f"og_{r}_4"]=(x(f"og_{r}_1")-x(f"og_{r}_3"))/max(1,x(f"og_{r}_2"))
 for c in (1,2):
@@ -85,7 +86,11 @@ for j in range(5): E[f"yr_tot_{j}"]=sum(E[f"yr_{m}_{j}"] for m in range(12))
 E["yr_goalpct"]=E["tr_r_11"]/t*100; E["yr_nw"]=E["nw_chg"]
 calc=[k for k,v in F.items() if v["calc"]]
 uncovered=[k for k in calc if k not in E]
-bad=[(k,round(E[k],4),V.get(k)) for k in calc if k in E and abs(n(k)-E[k])>0.005]
+TEXT={"goal_flag"}
+sh=E["goal_share"]
+E_text={"goal_flag":"Add your take-home pay to check this goal." if pay<=0 else ("More than you earn each month. Stretch the timeline or grow income first." if sh>100 else ("Over half your pay. Very ambitious: plan big cuts or extra income." if sh>50 else ("A stretch, but doable on a tight budget." if sh>20 else "Comfortable. You could aim higher.")))}
+E.update({k:0 for k in TEXT})
+bad=[(k,round(E[k],4),V.get(k)) for k in calc if k in E and k not in TEXT and abs(n(k)-E[k])>0.005]+[(k,E_text[k],V.get(k)) for k in TEXT if V.get(k)!=E_text[k]]
 print(f"passes={passes}: {len(calc)} calculated boxes, {len(calc)-len(uncovered)} checked, {len(bad)} wrong, not covered: {uncovered}")
 for b_ in bad[:12]: print("  WRONG", b_)
 groups={}
