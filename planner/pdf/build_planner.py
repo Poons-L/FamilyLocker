@@ -39,6 +39,9 @@ F_DISP_I = reg("Gelasio-Italic", os.path.join(FD, "Gelasio-Italic.ttf"), "Times-
 F_BODY = reg("Gelasio", os.path.join(FD, "Gelasio-Regular.ttf"), "Times-Roman")
 F_BOLD = F_DISP
 F_MONO = F_BODY
+F_HAND = reg("Kalam", os.path.join(FD, "Kalam-Regular.ttf"), "Helvetica-Oblique")   # handwriting for the worked example
+HAND = HexColor("#34466B")
+FIELD_FONT = "Times-Roman"   # typed numbers in a serif to match the page
 
 MONTHS = [calendar.month_name[i] for i in range(1, 13)]
 MON = [calendar.month_abbr[i] for i in range(1, 13)]
@@ -84,20 +87,25 @@ class Planner:
             self.text(x, y, line, font, size, color); y -= lead
         return y
 
-    def field(self, name, x, y, w, h, num=False, dec=0, calc=None, value="", multiline=False, size=9.5, tip=None):
+    def field(self, name, x, y, w, h, num=False, dec=0, calc=None, value="", multiline=False, size=9.5, tip=None, textcalc=None):
         assert name not in self.meta, name
-        fill = CALC if calc else FIELD
+        fill = CALC if (calc or textcalc) else FIELD
         flags = "multiline" if multiline else ""
-        self.c.acroForm.textfield(name=name, tooltip=tip or name, x=x, y=y, width=w, height=h, value=str(value),
-                                  fontName="Helvetica", fontSize=size, borderStyle="underlined", borderWidth=0.6,
+        if calc or textcalc:
+            tip = (tip or "") + ("  (fills in by itself)" if tip else "Fills in by itself")
+        self.c.acroForm.textfield(name=name, tooltip=tip or " ", x=x, y=y, width=w, height=h, value=str(value),
+                                  fontName=FIELD_FONT, fontSize=size, borderStyle="underlined", borderWidth=0.6,
                                   borderColor=LINE, fillColor=fill, textColor=INK, forceBorder=True, fieldFlags=flags)
-        self.meta[name] = dict(num=num or bool(calc), dec=dec, calc=calc)
-        if calc:
+        if textcalc:
+            self.meta[name] = dict(text=True, calc=textcalc)
+        else:
+            self.meta[name] = dict(num=num or bool(calc), dec=dec, calc=calc)
+        if calc or textcalc:
             self.order.append(name)
 
     def check(self, name, x, y, s=10, tip=None, checked=False):
         assert name not in self.meta, name
-        self.c.acroForm.checkbox(name=name, tooltip=tip or name, x=x, y=y, size=s, buttonStyle="check", checked=checked,
+        self.c.acroForm.checkbox(name=name, tooltip=tip or " ", x=x, y=y, size=s, buttonStyle="check", checked=checked,
                                  borderColor=VAULT, fillColor=PAPER, textColor=VAULT, borderWidth=0.8, forceBorder=True)
         self.meta[name] = dict(check=True)
 
@@ -167,7 +175,7 @@ class Planner:
         calc extra: function(row_prefix) -> js expression. Returns y below table."""
         hx = x
         for head, w, kind, *_ in cols:
-            al = "left" if kind == "text" else ("center" if kind == "check" else "right")
+            al = "left" if kind in ("text", "textcalc") else ("center" if kind == "check" else "right")
             tx = hx + 2 if al == "left" else (hx + w / 2 if al == "center" else hx + w - 3)
             self.text(tx, y, head, F_BOLD, 7.5, MUTED, al)
             hx += w + 4
@@ -177,17 +185,22 @@ class Planner:
             hx = x
             for ci, (head, w, kind, *extra) in enumerate(cols):
                 n = f"{prefix}_{r+1}_{ci}"
+                rowlab = defaults[r] if (defaults and r < len(defaults) and defaults[r]) else f"Row {r+1}"
+                tip = f"{rowlab}: {head}"
                 if kind == "check":
-                    self.check(n, hx + w / 2 - 5, y + 3, 10, checked=(r + 1, ci) in checked)
+                    self.check(n, hx + w / 2 - 5, y + 3, 10, checked=(r + 1, ci) in checked, tip=tip)
                 elif kind == "text":
                     dv = defaults[r] if (defaults and ci == 0 and r < len(defaults)) else ""
-                    self.field(n, hx, y, w, rh - 3, value=dv)
+                    self.field(n, hx, y, w, rh - 3, value=dv, tip=head)
                 elif kind == "num":
                     dec = extra[0] if extra else 0
-                    self.field(n, hx, y, w, rh - 3, num=True, dec=dec)
+                    self.field(n, hx, y, w, rh - 3, num=True, dec=dec, tip=tip)
                 elif kind == "calc":
                     fn, *rest = extra
-                    self.field(n, hx, y, w, rh - 3, calc=fn(f"{prefix}_{r+1}_"), dec=rest[0] if rest else 0)
+                    self.field(n, hx, y, w, rh - 3, calc=fn(f"{prefix}_{r+1}_"), dec=rest[0] if rest else 0, tip=tip)
+                elif kind == "textcalc":
+                    dv = defaults[r] if (ci == 0 and defaults and r < len(defaults)) else ""
+                    self.field(n, hx, y, w, rh - 3, textcalc=extra[0](f"{prefix}_{r+1}_", r + 1), tip=head, value=dv)
                 hx += w + 4
         if total:
             y -= rh + 2
@@ -195,7 +208,7 @@ class Planner:
             for ci, (head, w, kind, *extra) in enumerate(cols):
                 if ci in total:
                     names = [f"{prefix}_{r+1}_{ci}" for r in range(rows)]
-                    self.field(f"{prefix}_tot_{ci}", hx, y, w, rh - 3, calc=SUM(names), dec=extra[1] if kind == "calc" and len(extra) > 1 else (extra[0] if kind == "num" and extra else 0))
+                    self.field(f"{prefix}_tot_{ci}", hx, y, w, rh - 3, calc=SUM(names), dec=extra[1] if kind == "calc" and len(extra) > 1 else (extra[0] if kind == "num" and extra else 0), tip=f"Total: {head}")
                 elif ci == 0:
                     self.text(hx + 2, y + 4, "Total", F_BOLD, 9, INK)
                 hx += w + 4
@@ -207,7 +220,7 @@ class Planner:
 
 
 # ---------- JS helpers ----------
-PRE = 'var d=this;function N(n){var f=d.getField(n);if(!f)return 0;var v=String(f.value).replace(/,/g,"");if(v==="")return 0;v=Number(v);return isNaN(v)?0:v;}function C(n){var f=d.getField(n);return f&&f.value!=="Off"&&f.value!==""?1:0;}function E(n){var f=d.getField(n);return f&&String(f.value)!==""?1:0;}'
+PRE = 'var d=this;function N(n){var f=d.getField(n);if(!f)return 0;var v=String(f.value).replace(/,/g,"");if(v==="")return 0;v=Number(v);return isNaN(v)?0:v;}function C(n){var f=d.getField(n);return f&&f.value!=="Off"&&f.value!==""?1:0;}function E(n){var f=d.getField(n);return f&&String(f.value)!==""?1:0;}function T(n){var f=d.getField(n);return f?String(f.value):"";}function SM(){var f=d.getField("start_month");var i=f?["January","February","March","April","May","June","July","August","September","October","November","December"].indexOf(String(f.value)):-1;return i<0?0:i;}function ML(){return 12-SM();}function DB(b,a,p){var r=a/1200,k=0,t=0;if(b<=0)return [0,0];if(p<=0)return [-1,0];if(p<=b*r)return [-2,0];while(b>0.005&&k<1200){var i=b*r;t+=i;b=b+i-p;k++;}return [k,t];}'
 def SUM(names): return "+".join(f'N("{n}")' for n in names) or "0"
 def calc_js(expr): return PRE + f"var r=({expr});event.value=(isFinite(r)&&Math.abs(r)>0.0001)?r:\"\";"
 
@@ -215,7 +228,7 @@ def calc_js(expr): return PRE + f"var r=({expr});event.value=(isFinite(r)&&Math.
 def calc_order(meta, order):
     """Order calculations so every box is worked out after the boxes it reads (Acrobat runs /CO once, top to bottom)."""
     import re
-    deps = {n: [d for d in re.findall(r'[NCE]\("([^"]+)"\)', meta[n]["calc"]) if meta.get(d, {}).get("calc")] for n in order}
+    deps = {n: [d for d in re.findall(r'[NCET]\("([^"]+)"\)', meta[n]["calc"]) if meta.get(d, {}).get("calc")] for n in order}
     done, out = set(), []
     def visit(n, stack=()):
         if n in done: return
@@ -273,10 +286,10 @@ def postprocess(path, meta, order):
     with open(path, "wb") as f:
         w.write(f)
 
-NON_MONEY = ("og_", "dash_reached", "dash_rate", "dash_nsd", "dash_months", "goal_share", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
+NON_MONEY = ("og_", "dash_reached", "dash_rate", "dash_nsd", "goal_share", "tax_rate", "best_rate", "tr_p_", "_nscount", "yr_goalpct", "er_rate_", "er_tot_rate")
 def is_money(n):
     if n.startswith("og_") and n.endswith("_2"): return False   # months away
-    if n.startswith("ac_") and n.endswith("_2"): return False   # rate %
+    if n.startswith(("ac_", "db_")) and n.endswith("_2"): return False   # rate %
     if n.startswith("yr_") and n.endswith("_4"): return False   # no-spend days
     return not any(k in n for k in NON_MONEY if k != "og_")
 
@@ -290,60 +303,68 @@ def build(path, size):
     P = Planner(path, size)
     c, W, H, M = P.c, P.W, P.H, P.M
     CW = W - 2 * M
+    INC = ["Salary / main income", "Bonus or commission", "Side income / freelance", "Interest and dividends", "Rental income", "Other"]
+    EXP = ["Rent or mortgage", "Utilities and phone", "Groceries", "Transport", "Insurance", "Debt repayments",
+           "Medical and health", "Kids and education", "Home and repairs", "Subscriptions", "Eating out", "Shopping",
+           "Personal care", "Entertainment", "Travel and holidays", "Gifts", "Charity and festivals", "Other"]
+    SUBS_ROW = EXP.index("Subscriptions") + 1
 
     # ---------------- 1. COVER ----------------
     P.page_no = 1
     cover(P, "THE MONEY PLANNER", ["Financial Planner", str(YEAR)],
           "Know where every bit of money goes. Save more, waste less, and collect what you're owed.",
-          [("THIS PLANNER BELONGS TO", "owner"), (f"MY MONEY WORD FOR {YEAR}", "word")])
+          [("THIS PLANNER BELONGS TO", "owner"), (f"MY MONEY WORD FOR {YEAR}", "word")],
+          notice=("OPEN IN ADOBE ACROBAT READER (FREE) SO THE TOTALS ADD UP",
+                  "Phone preview apps and some browsers let you type but leave the gold boxes empty."))
 
     # ---------------- 2. HOW TO USE ----------------
     y = P.page("How to use this planner", "Start here",
                "Type straight into any box. Shaded gold boxes work themselves out: totals, monthly targets, running balances. Save the file after each session so your numbers stay put.")
     steps = [
-        ("Set your goal", "Pick one big savings number for the year. The planner splits it into a monthly, weekly and daily target."),
-        ("Take a snapshot", "Write down what you own and owe in January. Do it again in December and see the change."),
-        ("Audit your subscriptions", "List every repeat charge. Tick the ones you didn't use last month and decide: keep or cancel."),
-        ("Plug spending leaks", "Shopping, takeaways, impulse buys. Set a target you can live with and watch the yearly saving add up."),
-        ("Wake up idle money", "Cash earning almost nothing? Compare rates and give each pot of money a job."),
-        ("Collect what you're owed", "Track every IOU. Use the ready-made reminder scripts so asking feels easy."),
-        ("Budget every month", "Add your earnings (tick any with no tax taken out), plan your spending, then track actuals. Your earnings and savings pages fill in by themselves."),
+        ("Set your goal", "Pick your start month, add your take-home pay, and the reality check tells you if the number is doable."),
+        ("Set up your usual month, once", "Type your normal income and bills one time. Every monthly page fills in its plan from it."),
+        ("Audit subscriptions and plug leaks", "Cancel what you don't use. Kept subscriptions flow into your usual month automatically."),
+        ("Plan big yearly costs and debts", "Spread holidays and premiums across the year. See when each debt will be gone."),
+        ("Take a snapshot", "What you own and owe in January, June and December. Wake up idle money and log who owes you."),
+        ("Each month: ten minutes", "Type what actually came in and went out. Adjust anything unusual. Note what you moved to savings."),
+        ("Check your summary", "'My year at a glance' fills itself in and tells you what you need from now on."),
     ]
-    y -= 10
+    y -= 6
     for i, (h, d) in enumerate(steps):
         P.text(M + 2, y - 15, str(i + 1), F_DISP, 13, GOLD)
         P.text(M + 26, y - 13, h, F_BOLD, 11.5, INK)
         P.wrap(M + 26, y - 28, d, CW - 26, font=F_DISP_I, size=9.5)
-        y -= 46
-    y -= 4
-    y = P.note(M, y, CW, "totals work in the free Adobe Acrobat Reader and most desktop PDF apps. In some browsers and phone apps you can still type in every box, but totals may not update until you open the file in Acrobat Reader.")
-    y -= 8
-    P.box(M, y - 58, CW, 58, VAULT_SOFT)
-    P.text(M + 14, y - 22, "Choose your currency", F_BOLD, 11, INK)
-    P.text(M + 14, y - 38, "Pick from the list or type your own (e.g. S$, RM, Rs). Every amount updates.", F_BODY, 9.5, MUTED)
-    currency_picker(P, W - M - 116, y - 42)
-    y -= 70
-    P.box(M, y - 70, CW, 70, VAULT_SOFT)
-    P.text(M + 14, y - 22, "Set aside for tax on side income", F_BOLD, 11, INK)
-    P.wrap(M + 14, y - 38, "Freelance, side-hustle and rental income usually has no tax taken out. Enter the % you want to put aside (check your local rules). Each month, tick 'Untaxed' next to that income and the planner reserves it for you.", CW - 180, size=9.5)
-    P.field("tax_rate", W - M - 130, y - 46, 80, 24, num=True, dec=0, size=12, tip="Percent to set aside, e.g. 20")
-    P.text(W - M - 44, y - 39, "%", F_BOLD, 12, INK)
-    y -= 92
-    P.text(M, y, "Tip: save the file after every session so your numbers stay put.", F_DISP_I, 11, MUTED)
+        y -= 42
+    y -= 2
+    y = P.note(M, y, CW, "see Maya's filled-in January on the next page before you start. It takes two minutes and saves twenty.")
+    y -= 6
+    P.box(M, y - 54, CW, 54, VAULT_SOFT)
+    P.text(M + 14, y - 21, "Choose your currency", F_BOLD, 11, INK)
+    P.text(M + 14, y - 37, "Pick from the list or type your own (e.g. S$, RM, Rs). Every amount updates.", F_BODY, 9.5, MUTED)
+    currency_picker(P, W - M - 116, y - 40)
+    y -= 64
+    P.box(M, y - 66, CW, 66, VAULT_SOFT)
+    P.text(M + 14, y - 21, "Set aside for tax on side income", F_BOLD, 11, INK)
+    P.wrap(M + 14, y - 36, "Freelance, side-hustle and rental income usually has no tax taken out. Enter the % to put aside (check your local rules). Tick 'Untaxed' next to that income each month and the planner reserves it.", CW - 180, size=9.5)
+    P.field("tax_rate", W - M - 130, y - 44, 80, 24, num=True, dec=0, size=12, tip="Percent of untaxed income to set aside, e.g. 20")
+    P.text(W - M - 44, y - 37, "%", F_BOLD, 12, INK)
+
+    # ---------------- WORKED EXAMPLE ----------------
+    worked_example(P)
 
     # ---------------- MY YEAR AT A GLANCE (summary) ----------------
     y = P.page(f"My {YEAR} at a glance", "Your summary",
                "Nothing to type here. This page fills itself in from the rest of the planner, so one look tells you where you stand.")
     SAVED = "+".join(f'N("m{k}_saved")' for k in range(12))
-    FILLED = "+".join(f'E("m{k}_saved")' for k in range(12))
+    FILLED = "+".join(f'({k}>=SM()?E("m{k}_saved"):0)' for k in range(12))
     cards = [
         ("Savings goal", [("Goal", 'N("goal_target")', "dash_goal"),
                           ("Saved so far", f'N("goal_start")+{SAVED}', "dash_saved"),
                           ("% of goal reached", f'N("goal_target")>0?(N("goal_start")+{SAVED})/N("goal_target")*100:0', "dash_reached"),
                           ("Still to save", f'Math.max(0,N("goal_target")-(N("goal_start")+{SAVED}))', "dash_left"),
-                          ("Needed a month from now", f'(12-({FILLED}))>0?Math.max(0,N("goal_target")-(N("goal_start")+{SAVED}))/(12-({FILLED})):0', "dash_need")]),
+                          ("Needed a month from now", f'(ML()-({FILLED}))>0?Math.max(0,N("goal_target")-(N("goal_start")+{SAVED}))/(ML()-({FILLED})):0', "dash_need")]),
         ("Money in and out, year to date", [("Earned", "+".join(f'N("m{k}in_tot_2")' for k in range(12)), "dash_in"),
-                          ("Spent", "+".join(f'N("m{k}ex_tot_2")' for k in range(12)), "dash_out"),
+                          ("Spent", "+".join(f'N("m{k}ex_tot_3")' for k in range(12)), "dash_out"),
                           ("Set aside for tax", "+".join(f'N("m{k}_tax")' for k in range(12)), "dash_tax"),
                           ("Moved to savings", SAVED, "dash_sv"),
                           ("% of earnings saved", 'N("dash_in")>0?N("dash_sv")/N("dash_in")*100:0', "dash_rate")]),
@@ -356,7 +377,7 @@ def build(path, size):
                           ("Net worth in December", 'N("nw_dec")', "dash_nwd"),
                           ("Change this year", 'N("nw_chg")', "dash_nwc"),
                           ("No-spend days", "+".join(f'N("m{k}_nscount")' for k in range(12)), "dash_nsd"),
-                          ("Months completed (of 12)", FILLED, "dash_months")]),
+                          ("Debt still to clear", 'N("db_tot_1")', "dash_debt")]),
     ]
     cw2 = (CW - 14) / 2; rh = 30
     for i, (title, rows) in enumerate(cards):
@@ -381,11 +402,16 @@ def build(path, size):
                "One clear number beats five vague wishes. Write it, price it, and break it into bites you can actually hit.")
     y = P.section(M, y - 6, "The goal")
     P.text(M, y - 2, "I'm saving for", F_BODY, 9, MUTED)
-    P.field("goal_name", M, y - 24, CW * 0.62, 20, size=12, tip="What you're saving for")
-    P.text(M + CW * 0.66, y - 2, "Target amount", F_BODY, 9, MUTED)
-    P.field("goal_target", M + CW * 0.66, y - 24, CW * 0.34, 20, num=True, size=12, tip="How much you want to save in the year")
+    P.field("goal_name", M, y - 24, CW * 0.40, 20, size=12, tip="What you're saving for")
+    P.text(M + CW * 0.43, y - 2, "I'm starting in", F_BODY, 9, MUTED)
+    c.acroForm.choice(name="start_month", tooltip="The month you start using this planner", value="January", options=MONTHS,
+                      fieldFlags="combo", x=M + CW * 0.43, y=y - 24, width=CW * 0.21, height=20, fontName=FIELD_FONT, fontSize=11,
+                      borderColor=LINE, fillColor=FIELD, textColor=INK, borderWidth=0.6, forceBorder=True)
+    P.meta["start_month"] = {}
+    P.text(M + CW * 0.67, y - 2, f"Target by December {YEAR}", F_BODY, 9, MUTED)
+    P.field("goal_target", M + CW * 0.67, y - 24, CW * 0.33, 20, num=True, size=12, tip="How much you want to save by December")
     y -= 44
-    P.text(M, y - 2, "Saved already on 1 January", F_BODY, 9, MUTED)
+    P.text(M, y - 2, "Saved already when I start", F_BODY, 9, MUTED)
     P.field("goal_start", M, y - 24, CW * 0.26, 20, num=True, size=11)
     P.text(M + CW * 0.29, y - 2, "My take-home pay per month", F_BODY, 9, MUTED)
     P.field("goal_pay", M + CW * 0.29, y - 24, CW * 0.26, 20, num=True, size=11, tip="Usual monthly pay after tax")
@@ -395,9 +421,9 @@ def build(path, size):
     # breakdown band
     P.box(M, y - 70, CW, 70, VAULT_SOFT)
     labs = [("Still to save", '(N("goal_target")-N("goal_start"))', "goal_left"),
-            ("Per month", '(N("goal_target")-N("goal_start"))/12', "goal_pm"),
-            ("Per week", '(N("goal_target")-N("goal_start"))/52', "goal_pw"),
-            ("Per day", '(N("goal_target")-N("goal_start"))/365', "goal_pd")]
+            ("Per month", '(N("goal_target")-N("goal_start"))/ML()', "goal_pm"),
+            ("Per week", '(N("goal_target")-N("goal_start"))/(ML()*52/12)', "goal_pw"),
+            ("Per day", '(N("goal_target")-N("goal_start"))/(ML()*365/12)', "goal_pd")]
     bw = (CW - 28 - 3 * 10) / 4
     for i, (l, expr, n) in enumerate(labs):
         bx = M + 14 + i * (bw + 10)
@@ -412,7 +438,7 @@ def build(path, size):
             '(N("goal_pm")/N("goal_pay")>0.5?"Over half your pay. Very ambitious: plan big cuts or extra income.":'
             '(N("goal_pm")/N("goal_pay")>0.2?"A stretch, but doable on a tight budget.":"Comfortable. You could aim higher.")))')
     P.c.acroForm.textfield(name="goal_flag", tooltip="Reality check", x=M + 210, y=y - 9, width=CW - 210, height=17, value="",
-                           fontName="Helvetica", fontSize=9.5, borderStyle="underlined", borderWidth=0.6,
+                           fontName=FIELD_FONT, fontSize=9.5, borderStyle="underlined", borderWidth=0.6,
                            borderColor=LINE, fillColor=CALC, textColor=INK, forceBorder=True)
     P.meta["goal_flag"] = dict(text=True, calc=flag); P.order.append("goal_flag")
     y -= 30
@@ -434,24 +460,60 @@ def build(path, size):
                        ("Per month", 84, "calc", lambda p: f'(N("{p}1")-N("{p}3"))/Math.max(1,N("{p}2"))')],
                 5, "og", rh=19)
 
+    # ---------------- MY USUAL MONTH ----------------
+    y = P.page("My usual month", "Set up once",
+               "Type your normal month here, one time. Every monthly page copies this plan, so each month you only type what actually happened.")
+    y -= 4
+    halfw = (CW - 16) / 2
+    P.text(M, y, "INCOME", F_BOLD, 8, GOLD)
+    yi = P.table(M, y - 10, [("Source", halfw - 84 - 4, "text"), ("Usual / month", 84, "num")], 6, "um_in", rh=19,
+                 defaults=INC, total={1})
+    P.box(M, yi - 104, halfw, 96)
+    P.text(M + 14, yi - 26, "USUAL LEFT AFTER BILLS", F_BOLD, 7.5, GOLD)
+    P.field("um_left", M + 14, yi - 52, halfw - 28, 20, calc='N("um_in_tot_1")-N("um_ex_tot_1")', size=12)
+    P.text(M + 14, yi - 70, "YOUR GOAL NEEDS EACH MONTH", F_BOLD, 7.5, GOLD)
+    P.field("um_goal", M + 14, yi - 96, halfw - 28, 20, calc='N("goal_pm")', size=12)
+    yn = P.note(M, yi - 114, halfw, "if the goal needs more than you usually have left, trim one big bill or stretch the goal now, not in October.")
+    ex_def = list(EXP)
+    sx_ = M + halfw + 16
+    P.text(sx_, y, "SPENDING", F_BOLD, 8, GOLD)
+    P.table(sx_, y - 10, [("Category", halfw - 84 - 4, "text"),
+                          ("Usual / month", 84, "calc", lambda q: f'N("{q}9")')],   # placeholder, replaced below
+            0, "um_tmp", rh=1)
+    yy = y - 16
+    for r in range(1, len(EXP) + 1):
+        yy -= 19
+        P.field(f"um_ex_{r}_0", sx_, yy, halfw - 88, 16, value=ex_def[r - 1], tip="Category")
+        if r == SUBS_ROW:
+            P.field(f"um_ex_{r}_1", sx_ + halfw - 84, yy, 84, 16, tip="Subscriptions you kept",
+                    calc="+".join(f'(C("sub_{k}_4")?0:N("sub_{k}_1"))' for k in range(1, 17)))
+        else:
+            P.field(f"um_ex_{r}_1", sx_ + halfw - 84, yy, 84, 16, num=True, tip=f"{EXP[r-1]}: usual / month")
+    yy -= 21
+    P.text(sx_ + 2, yy + 4, "Total", F_BOLD, 9, INK)
+    P.field("um_ex_tot_1", sx_ + halfw - 84, yy, 84, 16, calc=SUM([f"um_ex_{r}_1" for r in range(1, len(EXP) + 1)]), tip="Total usual spending")
+    P.wrap(sx_, yy - 18, "Rename a category here and it changes on every monthly page. Subscriptions fill in from your audit.", halfw, font=F_DISP_I, size=8.5)
+
     # ---------------- 4. SNAPSHOT ----------------
     y = P.page("Money snapshot", "Net worth",
-               "What you own minus what you owe. Fill January now and December at year end. The change is your real scorecard.")
+               "What you own minus what you owe. Fill January now, June halfway, December at year end. The change is your real scorecard.")
     cw = [CW - 2 * 100 - 2 * 90 - 16, 100, 100, 90]
     y = P.section(M, y - 6, "What I own")
-    y = P.table(M, y, [("Asset", CW - 2 * 110 - 8, "text"), (f"Jan {YEAR}", 110, "num"), (f"Dec {YEAR}", 110, "num")], 9, "as", rh=19,
+    y = P.table(M, y, [("Asset", CW - 3 * 96 - 12, "text"), (f"Jan {YEAR}", 96, "num"), (f"Jun {YEAR}", 96, "num"), (f"Dec {YEAR}", 96, "num")], 9, "as", rh=19,
                 defaults=["Everyday bank account", "Savings account", "Term / fixed deposits", "Investments and funds",
-                          "Retirement / pension", "Home or property", "Vehicle", "Other", ""], total={1, 2})
+                          "Retirement / pension", "Home or property", "Vehicle", "Other", ""], total={1, 2, 3})
     y = P.section(M, y - 4, "What I owe")
-    y = P.table(M, y, [("Debt", CW - 2 * 110 - 8, "text"), (f"Jan {YEAR}", 110, "num"), (f"Dec {YEAR}", 110, "num")], 6, "li", rh=19,
-                defaults=["Credit cards", "Personal loan", "Car loan", "Home loan / mortgage", "Student loan", ""], total={1, 2})
+    y = P.table(M, y, [("Debt", CW - 3 * 96 - 12, "text"), (f"Jan {YEAR}", 96, "num"), (f"Jun {YEAR}", 96, "num"), (f"Dec {YEAR}", 96, "num")], 6, "li", rh=19,
+                defaults=["Credit cards", "Personal loan", "Car loan", "Home loan / mortgage", "Student loan", ""], total={1, 2, 3})
     P.box(M, y - 76, CW, 70, VAULT)
-    xs = [M + 16, M + CW / 3 + 8, M + 2 * CW / 3]
-    for i, (l, expr, n) in enumerate([("Net worth, January", 'N("as_tot_1")-N("li_tot_1")', "nw_jan"),
-                                     ("Net worth, December", 'N("as_tot_2")-N("li_tot_2")', "nw_dec"),
-                                     ("Change this year", 'N("nw_dec")-N("nw_jan")', "nw_chg")]):
-        P.text(xs[i], y - 26, l.upper(), F_BOLD, 7.5, HexColor("#B9B2A3"))
-        P.field(n, xs[i], y - 60, CW / 3 - 28, 24, calc=expr, size=13)
+    q4 = (CW - 32 - 30) / 4
+    for i, (l, expr, n) in enumerate([("Net worth, Jan", 'N("as_tot_1")-N("li_tot_1")', "nw_jan"),
+                                     ("Net worth, Jun", 'N("as_tot_2")-N("li_tot_2")', "nw_jun"),
+                                     ("Net worth, Dec", 'N("as_tot_3")-N("li_tot_3")', "nw_dec"),
+                                     ("Change this year", 'E("as_1_3")||N("as_tot_3")!==0||N("li_tot_3")!==0?N("nw_dec")-N("nw_jan"):0', "nw_chg")]):
+        xx = M + 16 + i * (q4 + 10)
+        P.text(xx, y - 26, l.upper(), F_BOLD, 7.5, HexColor("#B9B2A3"))
+        P.field(n, xx, y - 60, q4, 24, calc=expr, size=12)
 
     # ---------------- 5. SUBSCRIPTIONS ----------------
     y = P.page("Subscription audit", "Cut the waste",
@@ -504,6 +566,29 @@ def build(path, size):
     P.field("by_left", W - M - 160, y - 50, 144, 18, calc='Math.max(0,N("by_tot_2")-N("by_tot_4"))', size=11)
     y -= 72
     P.note(M, y, CW, "when the holiday or the premium arrives, the money is already sitting there. That's the whole trick. In the month you pay, log it under 'Travel and holidays' or 'Insurance' on that month's page.")
+
+    # ---------------- DEBT PAYOFF ----------------
+    y = P.page("Debt payoff plan", "Be debt-free",
+               "List what you owe and what you pay each month. The planner works out when each debt will be gone and how much interest it will cost you on the way.")
+    dw = CW - 4 * 74 - 104 - 20
+    debt_txt = lambda q, r: (f'(function(){{var x=DB(N("{q}1"),N("{q}2"),N("{q}3"));var k=x[0];'
+                             f'return k===0?"":(k===-1?"Add a payment":(k===-2?"Payment too low":(k<12?k+" months":Math.floor(k/12)+" yr "+(k%12)+" mo")));}})()')
+    y = P.table(M, y - 8, [("Debt", dw, "text"), ("Balance now", 74, "num"), ("Interest %", 74, "num", 2), ("Paying / month", 74, "num"),
+                           ("Debt-free in", 104, "textcalc", debt_txt),
+                           ("Interest to pay", 74, "calc", lambda q: f'(function(){{var x=DB(N("{q}1"),N("{q}2"),N("{q}3"));return x[0]>0?x[1]:0;}})()')],
+                8, "db", rh=22, total={1, 3, 5},
+                defaults=["Credit card", "Second credit card", "Personal loan", "Car loan", "Student loan", "Buy now, pay later", "", ""])
+    y -= 2
+    cols2 = [("Avalanche: saves the most", "Pay minimums on everything, then put every spare bit on the highest interest rate first."),
+             ("Snowball: keeps you going", "Pay minimums on everything, then clear the smallest balance first. Quick wins build momentum.")]
+    bw2 = (CW - 12) / 2
+    for i, (h, d) in enumerate(cols2):
+        bx = M + i * (bw2 + 12)
+        P.box(bx, y - 78, bw2, 72)
+        P.text(bx + 14, y - 24, h, F_BOLD, 11, INK)
+        P.wrap(bx + 14, y - 40, d, bw2 - 28, font=F_DISP_I, size=9.5)
+    y -= 92
+    P.note(M, y, CW, "try adding a little to 'Paying / month' on your most expensive debt and watch 'Debt-free in' drop. Then put that number in your usual month under Debt repayments.")
 
     # ---------------- 7. IDLE MONEY ----------------
     y = P.page("Idle money check", "Make it work",
@@ -576,7 +661,7 @@ def build(path, size):
         y -= 22
         P.text(M + 2, y + 5, MONTHS[m], F_BODY, 10.5, INK)
         x = M + tw + 4
-        P.field(f"tr_t_{m}", x, y, tw, 18, calc=f'N("goal_pm")*{m+1}'); x += tw + 4
+        P.field(f"tr_t_{m}", x, y, tw, 18, calc=f'{m}>=SM()?N("goal_pm")*({m}-SM()+1):0', tip=f"{MONTHS[m]}: target so far"); x += tw + 4
         P.field(f"tr_s_{m}", x, y, tw, 18, calc=f'N("m{m}_saved")'); x += tw + 4
         has = f'E("m{m}_saved")'   # only judge months that have been filled in
         P.field(f"tr_r_{m}", x, y, tw, 18, calc=f'{has}?N("goal_start")+' + "+".join(f'N("m{k}_saved")' for k in range(m + 1)) + ':0'); x += tw + 4
@@ -623,10 +708,6 @@ def build(path, size):
     P.note(M, y, CW, "saving has a floor; earning doesn't. Each quarter, pick one move: ask for a raise with evidence (the Appraisal Season Kit helps), take a paid side project, or sell what you no longer use.")
 
     # ---------------- 10-21. MONTHLY PAGES ----------------
-    INC = ["Salary / main income", "Bonus or commission", "Side income / freelance", "Interest and dividends", "Rental income", "Other"]
-    EXP = ["Rent or mortgage", "Utilities and phone", "Groceries", "Transport", "Insurance", "Debt repayments",
-           "Medical and health", "Kids and education", "Home and repairs", "Subscriptions", "Eating out", "Shopping",
-           "Personal care", "Entertainment", "Travel and holidays", "Gifts", "Charity and festivals", "Other"]
     for m in range(12):
         p = f"m{m}"
         y = P.page(f"{MONTHS[m]} {YEAR}", f"Month {m+1} of 12")
@@ -634,7 +715,8 @@ def build(path, size):
         leftw = CW * 0.62
         # income
         P.text(M, y, "INCOME", F_BOLD, 8, GOLD)
-        yi = P.table(M, y - 10, [("Source", leftw - 2 * 62 - 40 - 12, "text"), ("Planned", 62, "num"), ("Actual", 62, "num"), ("Untaxed", 40, "check")],
+        yi = P.table(M, y - 10, [("Source", leftw - 2 * 62 - 40 - 12, "textcalc", lambda q, r: f'T("um_in_{r}_0")'),
+                                 ("Usual", 62, "calc", lambda q: f'N("um_in_{q.split("_")[1]}_1")'), ("Actual", 62, "num"), ("Untaxed", 40, "check")],
                      6, f"{p}in", rh=18, defaults=INC, total={1, 2}, checked={(3, 3), (5, 3)})
         # calendar on right
         cx = M + leftw + 20; cwid = CW - leftw - 20
@@ -658,24 +740,30 @@ def build(path, size):
         y = min(yi, yc - 10) - 8
         # expenses
         P.text(M, y, "SPENDING", F_BOLD, 8, GOLD)
-        ew = CW - 3 * 90 - 12
-        y = P.table(M, y - 10, [("Category", ew, "text"), ("Planned", 90, "num"), ("Actual", 90, "num"),
-                                ("Left (+) / over (-)", 90, "calc", lambda q: f'N("{q}1")-N("{q}2")')],
-                    len(EXP), f"{p}ex", rh=16, defaults=EXP, total={1, 2, 3})
+        ew = CW - 4 * 76 - 16
+        y = P.table(M, y - 10, [("Category", ew, "textcalc", lambda q, r: f'T("um_ex_{r}_0")'),
+                                ("Usual plan", 76, "calc", lambda q: f'N("um_ex_{q.split("_")[1]}_1")'),
+                                ("Adjust (+/-)", 76, "num"), ("Actual", 76, "num"),
+                                ("Left (+) / over (-)", 76, "calc", lambda q: f'E("{q}3")?N("{q}1")+N("{q}2")-N("{q}3"):0')],
+                    len(EXP), f"{p}ex", rh=16, defaults=EXP, total={1, 2, 3, 4})
         # summary band
         P.box(M, y - 54, CW, 50, VAULT_SOFT)
         taxexpr = "(" + "+".join(f'(C("{p}in_{r}_3")?N("{p}in_{r}_2"):0)' for r in range(1, 7)) + ')*N("tax_rate")/100'
-        sx = [(f"Income", f'N("{p}in_tot_2")', f"{p}_inc"), ("Spent", f'N("{p}ex_tot_2")', f"{p}_spent"),
+        sx = [(f"Income", f'N("{p}in_tot_2")', f"{p}_inc"), ("Spent", f'N("{p}ex_tot_3")', f"{p}_spent"),
               ("Tax pot", taxexpr, f"{p}_tax"),
-              ("Left over", f'N("{p}in_tot_2")-N("{p}ex_tot_2")-N("{p}_tax")', f"{p}_left")]
-        sw4 = (CW - 28 - 40) / 5
+              ("Left over", f'N("{p}in_tot_2")-N("{p}ex_tot_3")-N("{p}_tax")', f"{p}_left")]
+        sw4 = (CW - 28 - 50) / 6
         for i, (l, e, n) in enumerate(sx):
             bx = M + 14 + i * (sw4 + 10)
-            P.text(bx, y - 18, l.upper(), F_BOLD, 7.5, VAULT)
-            P.field(n, bx, y - 44, sw4, 20, calc=e, size=11)
+            P.text(bx, y - 18, l.upper(), F_BOLD, 7, VAULT)
+            P.field(n, bx, y - 44, sw4, 20, calc=e, size=10.5, tip=l)
         bx = M + 14 + 4 * (sw4 + 10)
-        P.text(bx, y - 18, "TO SAVINGS", F_BOLD, 7.5, GOLD)
-        P.field(f"{p}_saved", bx, y - 44, sw4, 20, num=True, size=11, tip="What you moved to savings this month")
+        P.text(bx, y - 18, "TO SAVINGS", F_BOLD, 7, GOLD)
+        P.field(f"{p}_saved", bx, y - 44, sw4, 20, num=True, size=10.5, tip="Type what you moved to savings this month")
+        bx = M + 14 + 5 * (sw4 + 10)
+        P.text(bx, y - 18, "SPARE CASH", F_BOLD, 7, VAULT)
+        P.field(f"{p}_spare", bx, y - 44, sw4, 20, calc=f'E("{p}_saved")||N("{p}_left")!==0?N("{p}_left")-N("{p}_saved"):0', size=10.5,
+                tip="Left over minus what you saved: what's really free to spend")
         y -= 70
         # checklist + notes
         P.text(M, y, "THIS MONTH I", F_BOLD, 8, GOLD)
@@ -725,7 +813,64 @@ def build(path, size):
     P.save()
 
 
-def cover(P, kicker, title_lines, sub, fields):
+def worked_example(P):
+    """Static, handwritten-style example page, like the worked examples in the other TNN kits."""
+    c, W, H, M = P.c, P.W, P.H, P.M
+    CW = W - 2 * M
+    y = P.page("Maya's January, filled in", "Worked example",
+               "Maya is 34 and saving $100,000 for a house deposit. She set up her usual month once. On the 1st of each month she spends ten minutes here.")
+
+    def card(y, title, head, rows, widths):
+        h = 30 + 17 * (len(rows) + 1)
+        P.box(M, y - h, CW, h)
+        P.text(M + 14, y - 16, title.upper(), F_BOLD, 7.5, GOLD)
+        yy = y - 32
+        x = M + 14
+        for j, hd in enumerate(head):
+            P.text(x + (0 if j == 0 else widths[j] - 4), yy, hd, F_BOLD, 7.5, MUTED, "left" if j == 0 else "right")
+            x += widths[j]
+        for row in rows:
+            yy -= 17
+            x = M + 14
+            for j, v in enumerate(row):
+                if j == 0:
+                    P.text(x, yy, v, F_BODY, 9.5, INK)
+                else:
+                    P.text(x + widths[j] - 4, yy, v, F_HAND, 11, HAND, "right")
+                x += widths[j]
+        return y - h - 10
+
+    cw = CW - 28
+    w5 = [cw - 4 * 80, 80, 80, 80, 80]
+    y = card(y - 4, "Income: what came in", ["Source", "Usual", "Actual", "Untaxed?"],
+             [["Salary / main income", "12,000", "12,000", ""], ["Bonus or commission", "", "850", ""],
+              ["Side income / freelance", "600", "920", "yes"], ["Interest and dividends", "40", "46", ""]], w5[:4] + [0])
+    y = card(y, "Spending: four lines from her month", ["Category", "Usual plan", "Adjust", "Actual", "Left / over"],
+             [["Groceries", "900", "", "964", "-64"], ["Eating out", "500", "", "380", "+120"],
+              ["Shopping", "600", "", "455", "+145"], ["Gifts (sister's birthday)", "100", "+50", "85", "+65"]], w5)
+    # summary band, handwritten
+    P.box(M, y - 54, CW, 50)
+    labs = [("Income", "13,816"), ("Spent", "7,562"), ("Tax pot", "184"), ("Left over", "6,070"), ("To savings", "6,000"), ("Spare cash", "70")]
+    sw = (CW - 28) / 6
+    for i, (l, v) in enumerate(labs):
+        bx = M + 14 + i * sw
+        P.text(bx, y - 18, l.upper(), F_BOLD, 7, GOLD if l == "To savings" else VAULT)
+        P.text(bx, y - 40, v, F_HAND, 14, HAND)
+    y -= 68
+    P.text(M, y, "WHAT SHE NOTICED", F_BOLD, 7.5, GOLD)
+    notes = ["Freelance came in higher, so 20% of it (184) went straight to the tax pot.",
+             "Groceries ran 64 over. Eating out and shopping came in 265 under.",
+             "She saved 6,000 against a 6,500 target. Her summary page now says 6,545 a month from here."]
+    y -= 6
+    for t in notes:
+        y -= 17
+        P.c.setFillColor(GOLD); P.c.circle(M + 4, y + 4, 2.2, stroke=0, fill=1)
+        P.text(M + 14, y, t, F_HAND, 11, HAND)
+    y -= 18
+    P.note(M, y, CW, "Maya missed her number in January and still finished the month knowing exactly why. That's the whole point. Adjust only for the unusual stuff, like a birthday or a trip.")
+
+
+def cover(P, kicker, title_lines, sub, fields, notice=None):
     """Dark cover in the TNN kit style."""
     c, W, H, M = P.c, P.W, P.H, P.M
     CW = W - 2 * M
@@ -742,10 +887,14 @@ def cover(P, kicker, title_lines, sub, fields):
     for lab, name in fields:
         P.text(M, y, lab, F_BOLD, 7.5, GOLD_BRIGHT)
         c.acroForm.textfield(name=name, tooltip=lab.title(), x=M, y=y - 30, width=CW * 0.68, height=22, value="",
-                             fontName="Helvetica", fontSize=12, borderStyle="underlined", borderWidth=0.6,
+                             fontName=FIELD_FONT, fontSize=12, borderStyle="underlined", borderWidth=0.6,
                              borderColor=HexColor("#4A4D57"), fillColor=NIGHT_FIELD, textColor=white, forceBorder=True)
         P.meta[name] = {}
         y -= 62
+    if notice:
+        c.setStrokeColor(GOLD_BRIGHT); c.setLineWidth(0.8); c.roundRect(M, 52, CW, 46, 4, stroke=1, fill=0)
+        P.text(M + 14, 80, notice[0], F_BOLD, 7.5, GOLD_BRIGHT)
+        P.text(M + 14, 63, notice[1], F_DISP_I, 10, HexColor("#CFC8BA"))
     c.setStrokeColor(HexColor("#2E3038")); c.setLineWidth(0.5); c.line(M, 32, W - M, 32)
     c.drawImage(LOGO, M, 15.5, 14, 14, mask="auto")
     P.text(M + 19, 20, BRAND.upper(), F_BOLD, 7, HexColor("#F5EFE3"))
@@ -754,7 +903,7 @@ def cover(P, kicker, title_lines, sub, fields):
 
 def currency_picker(P, x, y):
     P.c.acroForm.choice(name="cur", tooltip="Currency symbol", value="$", options=["$", "€", "£", "¥", "No symbol", "A$", "S$", "NZ$", "HK$", "C$", "Rs", "INR", "RM", "Rp", "PHP", "THB", "AED", "SAR", "ZAR", "CHF", "KRW"],
-                        fieldFlags="combo edit", x=x, y=y, width=96, height=20, fontName="Helvetica", fontSize=11,
+                        fieldFlags="combo edit", x=x, y=y, width=96, height=20, fontName=FIELD_FONT, fontSize=11,
                         borderColor=VAULT, fillColor=PAPER, textColor=INK, borderWidth=0.8, forceBorder=True)
     P.meta["cur"] = {}
 
@@ -787,7 +936,7 @@ def build_leak_check(path, size):
     for i, (l, e, n) in enumerate(cols):
         bx = M + 14 + i * (bw + 10)
         P.text(bx, y - 26, l.upper(), F_BOLD, 7.5, HexColor("#B9B2A3"))
-        P.c.acroForm.textfield(name=n, tooltip=l, x=bx, y=y - 70, width=bw, height=30, value="", fontName="Helvetica", fontSize=16,
+        P.c.acroForm.textfield(name=n, tooltip=l, x=bx, y=y - 70, width=bw, height=30, value="", fontName=FIELD_FONT, fontSize=16,
                                borderStyle="underlined", borderWidth=0.6, borderColor=HexColor("#B9B2A3"), fillColor=HexColor("#2B2B2B"),
                                textColor=white, forceBorder=True)
         P.meta[n] = dict(num=True, dec=2, calc=e); P.order.append(n)

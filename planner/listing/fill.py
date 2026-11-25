@@ -33,19 +33,34 @@ for i,(w,f,a,d,r,pd) in enumerate(ious,1):
     if pd: V[f"iou_{i}_5"]="/Yes"
     else: V[f"iou_{i}_6"]=m(a); op+=a
 V.update(iou_tot_2=m(sum(x[2] for x in ious)), iou_tot_6=m(op))
-# January
-inc=[(12000,12000),(0,850),(600,920),(40,46),(0,0),(0,0)]
-for i,(pl,ac) in enumerate(inc,1):
+# My usual month (typed once)
+usual_in=[12000,0,600,40,0,0]
+for i,v in enumerate(usual_in,1):
+    if v: V[f"um_in_{i}_1"]=m(v)
+V["um_in_tot_1"]=m(sum(usual_in))
+kept=sum(c for (n_,c,used,canc) in subs if not canc)
+ex=[3200,320,900,450,300,400,120,250,100,round(kept,2),500,600,150,250,300,100,50,150]
+for i,v in enumerate(ex,1): V[f"um_ex_{i}_1"]=m(v, 2 if i==10 else 0)
+V.update(um_ex_tot_1=m(sum(ex)), um_left=m(sum(usual_in)-sum(ex)), um_goal=m(6500))
+# January: usual plan copied in, actuals typed, one adjustment
+inc_ac=[12000,850,920,46,0,0]
+for i,(pl,ac_) in enumerate(zip(usual_in,inc_ac),1):
     if pl: V[f"m0in_{i}_1"]=m(pl)
-    if ac: V[f"m0in_{i}_2"]=m(ac)
-ti=sum(a for _,a in inc); V.update(m0in_tot_1=m(sum(p for p,_ in inc)), m0in_tot_2=m(ti))
-ex=[3200,320,900,450,300,400,120,250,100,180,500,600,150,250,300,100,50,150]
+    if ac_: V[f"m0in_{i}_2"]=m(ac_)
+ti=sum(inc_ac); V.update(m0in_tot_1=m(sum(usual_in)), m0in_tot_2=m(ti))
 ac=[3200,298,964,410,300,400,60,250,45,95,380,455,140,190,120,85,50,120]
-for i,(p,a) in enumerate(zip(ex,ac),1):
-    V.update({f"m0ex_{i}_1":m(p), f"m0ex_{i}_2":m(a), f"m0ex_{i}_3":m(p-a)})
-te=sum(ac); V.update(m0ex_tot_1=m(sum(ex)), m0ex_tot_2=m(te), m0ex_tot_3=m(sum(ex)-te))
+adj={16:50}
+for i,(p,a_) in enumerate(zip(ex,ac),1):
+    V.update({f"m0ex_{i}_1":m(p, 2 if i==10 else 0), f"m0ex_{i}_3":m(a_), f"m0ex_{i}_4":m(p+adj.get(i,0)-a_)})
+    if i in adj: V[f"m0ex_{i}_2"]=m(adj[i])
+te=sum(ac); V.update(m0ex_tot_1=m(sum(ex)), m0ex_tot_2=m(sum(adj.values())), m0ex_tot_3=m(te), m0ex_tot_4=m(sum(ex)+sum(adj.values())-te))
+# debts
+for r,(b_,a_,p_,txt,intr) in enumerate([(4200,"24.90",300,"1 yr 5 mo",814),(12000,"8.50",450,"2 yr 6 mo",1347),(9000,"0.00",250,"3 yr 0 mo",0)],1):
+    V.update({f"db_{r}_1":m(b_), f"db_{r}_2":a_, f"db_{r}_3":m(p_), f"db_{r}_4":txt})
+    if intr: V[f"db_{r}_5"]=m(intr)
+V.update(db_1_0="Credit card", db_2_0="Personal loan", db_3_0="Car loan", db_tot_1=m(25200), db_tot_3=m(1000), db_tot_5=m(2161))
 V.update(tax_rate="20", m0in_3_3="/Yes", m0in_5_3="/Yes", m0_tax=m(920*0.2))
-V.update(m0_inc=m(ti), m0_spent=m(te), m0_left=m(ti-te-920*0.2), m0_saved=m(6000), m0_win="Cancelled 4 subscriptions in one evening",
+V.update(m0_inc=m(ti), m0_spent=m(te), m0_left=m(ti-te-920*0.2), m0_saved=m(6000), m0_spare=m(ti-te-920*0.2-6000), m0_win="Cancelled 4 subscriptions in one evening",
          m0_next="Cook at home 4 nights a week")
 nsd=[3,5,6,10,12,13,17,19,24,26,27,31]
 for d in nsd: V[f"m0_ns_{d}"]="/Yes"
@@ -70,7 +85,7 @@ ta=sum(x[2] for x in big); tsv=sum(x[3] for x in big)
 V.update(by_tot_2=m(ta), by_tot_3=m(ta/12), by_tot_4=m(tsv), by_pm=m(ta/12), by_left=m(ta-tsv))
 V.update(dash_goal=m(100000), dash_saved=m(34300), dash_reached="34", dash_left=m(65700), dash_need=m(6570),
          dash_in=m(26766), dash_out=m(14890), dash_tax=m(368), dash_sv=m(12300), dash_rate="46",
-         dash_subs=m(1374), dash_owed=m(1600), dash_big=m(675), dash_nsd="12", dash_months="2")
+         dash_subs=m(1374), dash_owed=m(1600), dash_big=m(675), dash_nsd="12", dash_debt=m(25200))
 rd=PdfReader(src); w=PdfWriter(clone_from=rd)
 for pg in w.pages:
     names={a.get_object().get("/T") for a in pg.get("/Annots",[])}

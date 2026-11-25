@@ -50,9 +50,14 @@ Found a leak? There are usually more. The Financial Planner 2027 runs this check
 **Description:**
 Most budget templates make you do the adding up. This one doesn't.
 
-25 fillable pages. Type your numbers, and the gold boxes total themselves.
+28 fillable pages. Type your numbers, and the gold boxes total themselves.
 
 **Inside**
+- **Set up once, then ten minutes a month:** type your usual month one time and every monthly page fills in its plan. Each month you only type what actually happened
+- **Start any month:** pick your start month and your targets spread over the months you have left
+- **Debt payoff plan:** see when each debt will be gone and the interest it will cost, with avalanche and snowball explained
+- **Worked example:** Maya's January, filled in, so you know exactly what to do
+- **Spare cash:** shows what's truly free to spend after saving
 - **My year at a glance:** a one-page summary that fills itself in: goal progress, money in and out, money found, net worth and habits
 - **Reality check:** tells you straight away if your goal is bigger than your pay
 - **Savings goal:** your target split into monthly, weekly and daily amounts, with milestone rewards
