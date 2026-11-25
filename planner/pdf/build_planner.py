@@ -212,6 +212,20 @@ def SUM(names): return "+".join(f'N("{n}")' for n in names) or "0"
 def calc_js(expr): return PRE + f"var r=({expr});event.value=(isFinite(r)&&Math.abs(r)>0.0001)?r:\"\";"
 
 
+def calc_order(meta, order):
+    """Order calculations so every box is worked out after the boxes it reads (Acrobat runs /CO once, top to bottom)."""
+    import re
+    deps = {n: [d for d in re.findall(r'[NC]\("([^"]+)"\)', meta[n]["calc"]) if meta.get(d, {}).get("calc")] for n in order}
+    done, out = set(), []
+    def visit(n, stack=()):
+        if n in done: return
+        assert n not in stack, f"circular formula at {n}"
+        for d in deps[n]: visit(d, stack + (n,))
+        done.add(n); out.append(n)
+    for n in order: visit(n)
+    return out
+
+
 def postprocess(path, meta, order):
     reader = PdfReader(path)
     w = PdfWriter(clone_from=reader)
@@ -247,7 +261,7 @@ def postprocess(path, meta, order):
                 aa[NameObject("/V")] = js('CUR=event.value;for(var i=0;i<this.numFields;i++){var n=this.getNthFieldName(i);if(n=="cur")continue;var f=this.getField(n);if(f&&f.type=="text"){var v=f.value;f.value=v;}}')
                 obj[NameObject("/AA")] = aa
     af = w._root_object["/AcroForm"]
-    af[NameObject("/CO")] = ArrayObject([refs[n] for n in order if n in refs])
+    af[NameObject("/CO")] = ArrayObject([refs[n] for n in calc_order(meta, order) if n in refs])
     af[NameObject("/NeedAppearances")] = BooleanObject(False)  # keep stored appearances so checkbox borders show in Chrome/Edge
     w._root_object[NameObject("/PageMode")] = NameObject("/UseNone")
     with open(path, "wb") as f:
@@ -595,7 +609,7 @@ def build(path, size):
             P.text(bx, y - 18, l.upper(), F_BOLD, 7.5, VAULT)
             P.field(n, bx, y - 44, sw4, 20, calc=e, size=11)
         bx = M + 14 + 4 * (sw4 + 10)
-        P.text(bx, y - 18, "MOVED TO SAVINGS", F_BOLD, 7.5, GOLD)
+        P.text(bx, y - 18, "TO SAVINGS", F_BOLD, 7.5, GOLD)
         P.field(f"{p}_saved", bx, y - 44, sw4, 20, num=True, size=11, tip="What you moved to savings this month")
         y -= 70
         # checklist + notes
