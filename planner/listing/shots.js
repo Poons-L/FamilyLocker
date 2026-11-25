@@ -39,10 +39,10 @@ subs: [2000,1600,`
 <div style="position:absolute;left:90px;top:150px;width:780px">
  <div class="k" style="font-size:28px">Subscription audit</div>
  <div class="h" style="font-size:104px;margin-top:20px">Find the money hiding in your subscriptions</div>
- <p style="font-size:38px;line-height:1.4;margin-top:34px;color:#CFC8BA">Tick what you used last month. Tick what to cancel. The yearly saving adds itself up.</p>
+ <p style="font-size:38px;line-height:1.4;margin-top:34px;color:#CFC8BA">Pick monthly or yearly. Tick what you haven't used in 3 months. The yearly saving adds itself up.</p>
 </div>
 <img class="pg" src="${img('f05.png')}" style="position:absolute;width:900px;right:90px;top:90px">
-<div class="callout" style="left:560px;bottom:200px"><b>$1,373</b><span>a year back, in one evening</span></div>
+<div class="callout" style="left:560px;bottom:200px"><b>$1,302</b><span>a year back, in one evening</span></div>
 <div class="brand"><span style="display:inline-flex;align-items:center;gap:16px"><img src="${img('logo.png')}" style="width:54px;height:54px">THE NICHELESS NICHE</span></div>`],
 monthly: [2000,1600,`
 <div style="position:absolute;left:90px;top:80px;width:1820px">
@@ -93,7 +93,7 @@ leak: [1080,1080,`
 <div style="position:absolute;left:70px;top:80px;width:520px">
  <div class="k" style="font-size:22px;color:#D2A85C">Free tool · 10 minutes</div>
  <div class="h" style="font-size:84px;color:#fff;margin-top:16px">The Subscription Leak Check</div>
- <p style="font-size:30px;line-height:1.4;margin-top:26px;color:#CFC8BA">List every repeat charge. Tick what you didn't use. See what cancelling puts back in your pocket.</p>
+ <p style="font-size:30px;line-height:1.4;margin-top:26px;color:#CFC8BA">List every repeat charge, monthly or yearly. Tick what you haven't used in 3 months. See what cancelling puts back.</p>
  <div style="margin-top:34px;display:inline-block;background:#D2A85C;color:#111318;font-weight:700;font-size:26px;border-radius:999px;padding:12px 24px;white-space:nowrap">Example: $1,255 a year back</div>
 </div>
 <img class="pg" src="${img('fleak.png')}" style="position:absolute;width:470px;right:-30px;top:150px;transform:rotate(5deg)">

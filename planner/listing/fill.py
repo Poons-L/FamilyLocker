@@ -13,17 +13,19 @@ V["ms_done_25"] = "/Yes"
 og = [("Emergency fund top-up", 6000, 6, 1500), ("New laptop", 1800, 4, 300), ("Family trip", 4500, 9, 900)]
 for i,(g,tg,mo,sv) in enumerate(og,1):
     V.update({f"og_{i}_0":g, f"og_{i}_1":m(tg), f"og_{i}_2":str(mo), f"og_{i}_3":m(sv), f"og_{i}_4":m((tg-sv)/mo)})
-# subscriptions
-subs = [("Video streaming",17.99,1,0),("Second streaming service",15.49,0,1),("Music app",10.99,1,0),("Gym membership",65,0,1),
-        ("News site",15,0,1),("Meditation app",5.99,0,1),("Cloud storage",2.99,1,0),("Meal-kit box",79,1,0),("Shopping membership",11.58,1,0),
-        ("Language app",12.99,0,1)]
+# subscriptions: cost as billed, Monthly or Yearly
+subs = [("Video streaming",17.99,"Monthly",1,0),("Second streaming service",15.49,"Monthly",0,1),("Music app",10.99,"Monthly",1,0),
+        ("Gym membership",65,"Monthly",0,1),("News site",180,"Yearly",0,1),("Mindvalley",499,"Yearly",1,0),("Cloud storage",2.99,"Monthly",1,0),
+        ("Meal-kit box",79,"Monthly",1,0),("Shopping membership",139,"Yearly",1,0),("Language app",12.99,"Monthly",0,1)]
 tm=ty=tc=0
-for i,(n,c,used,canc) in enumerate(subs,1):
-    V.update({f"sub_{i}_0":n, f"sub_{i}_1":m(c,2), f"sub_{i}_2":m(c*12,2)})
-    if used: V[f"sub_{i}_3"]="/Yes"
-    if canc: V[f"sub_{i}_4"]="/Yes"; V[f"sub_{i}_5"]=m(c*12,2); V[f"sub_{i}_6"]="/Yes" if i in (2,4) else "/Off"; tc+=c*12
-    tm+=c; ty+=c*12
-V.update(sub_tot_1=m(tm,2), sub_tot_2=m(ty,2), sub_tot_5=m(tc,2))
+for i,(n,c,bill,used,canc) in enumerate(subs,1):
+    mo=c/12 if bill=="Yearly" else c; yr=c if bill=="Yearly" else c*12
+    V.update({f"sub_{i}_0":n, f"sub_{i}_1":m(c,2), f"sub_{i}_2":bill, f"sub_{i}_3":m(mo,2), f"sub_{i}_4":m(yr,2)})
+    if used: V[f"sub_{i}_5"]="/Yes"
+    if canc: V[f"sub_{i}_6"]="/Yes"; V[f"sub_{i}_7"]=m(yr,2); tc+=yr
+    tm+=mo; ty+=yr
+V.update(sub_tot_3=m(tm,2), sub_tot_4=m(ty,2), sub_tot_7=m(tc,2))
+SUB_SAVES=tc
 # IOUs
 ious=[("Sam","Concert tickets",1200,"25 Jan",1,0),("Priya","Villa share",850,"19 Feb",1,1),("Alex","Car repair loan",400,"14 Mar",0,0),("Jordan","Gift split",300,"10 Jan",1,1)]
 op=0
@@ -38,7 +40,7 @@ usual_in=[12000,0,600,40,0,0]
 for i,v in enumerate(usual_in,1):
     if v: V[f"um_in_{i}_1"]=m(v)
 V["um_in_tot_1"]=m(sum(usual_in))
-kept=sum(c for (n_,c,used,canc) in subs if not canc)
+kept=sum((c/12 if bill=='Yearly' else c) for (n_,c,bill,used,canc) in subs if not canc)
 ex=[3200,320,900,450,300,400,120,250,100,round(kept,2),500,600,150,250,300,100,50,150]
 for i,v in enumerate(ex,1): V[f"um_ex_{i}_1"]=m(v, 2 if i==10 else 0)
 V.update(um_ex_tot_1=m(sum(ex)), um_left=m(sum(usual_in)-sum(ex)), um_goal=m(6500))
@@ -85,7 +87,7 @@ ta=sum(x[2] for x in big); tsv=sum(x[3] for x in big)
 V.update(by_tot_2=m(ta), by_tot_3=m(ta/12), by_tot_4=m(tsv), by_pm=m(ta/12), by_left=m(ta-tsv))
 V.update(dash_goal=m(100000), dash_saved=m(34300), dash_reached="34", dash_left=m(65700), dash_need=m(6570),
          dash_in=m(26766), dash_out=m(14890), dash_tax=m(368), dash_sv=m(12300), dash_rate="46",
-         dash_subs=m(1374), dash_owed=m(1600), dash_big=m(675), dash_nsd="12", dash_debt=m(25200))
+         dash_subs=m(SUB_SAVES), dash_owed=m(1600), dash_big=m(675), dash_nsd="12", dash_debt=m(25200))
 rd=PdfReader(src); w=PdfWriter(clone_from=rd)
 for pg in w.pages:
     names={a.get_object().get("/T") for a in pg.get("/Annots",[])}

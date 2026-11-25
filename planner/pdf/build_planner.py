@@ -175,7 +175,7 @@ class Planner:
         calc extra: function(row_prefix) -> js expression. Returns y below table."""
         hx = x
         for head, w, kind, *_ in cols:
-            al = "left" if kind in ("text", "textcalc") else ("center" if kind == "check" else "right")
+            al = "left" if kind in ("text", "textcalc", "choice") else ("center" if kind == "check" else "right")
             tx = hx + 2 if al == "left" else (hx + w / 2 if al == "center" else hx + w - 3)
             self.text(tx, y, head, F_BOLD, 7.5, MUTED, al)
             hx += w + 4
@@ -198,6 +198,11 @@ class Planner:
                 elif kind == "calc":
                     fn, *rest = extra
                     self.field(n, hx, y, w, rh - 3, calc=fn(f"{prefix}_{r+1}_"), dec=rest[0] if rest else 0, tip=tip)
+                elif kind == "choice":
+                    self.c.acroForm.choice(name=n, tooltip=tip, value=extra[0][0], options=extra[0], fieldFlags="combo",
+                                           x=hx, y=y, width=w, height=rh - 3, fontName=FIELD_FONT, fontSize=9,
+                                           borderColor=LINE, fillColor=FIELD, textColor=INK, borderWidth=0.6, forceBorder=True)
+                    self.meta[n] = {}
                 elif kind == "textcalc":
                     dv = defaults[r] if (ci == 0 and defaults and r < len(defaults)) else ""
                     self.field(n, hx, y, w, rh - 3, textcalc=extra[0](f"{prefix}_{r+1}_", r + 1), tip=head, value=dv)
@@ -368,7 +373,7 @@ def build(path, size):
                           ("Set aside for tax", "+".join(f'N("m{k}_tax")' for k in range(12)), "dash_tax"),
                           ("Moved to savings", SAVED, "dash_sv"),
                           ("% of earnings saved", 'N("dash_in")>0?N("dash_sv")/N("dash_in")*100:0', "dash_rate")]),
-        ("Money you found", [("Subscriptions cut, a year", 'N("sub_tot_5")', "dash_subs"),
+        ("Money you found", [("Subscriptions cut, a year", 'N("sub_tot_7")', "dash_subs"),
                           ("Safety net to keep", 'N("ef_target")', "dash_safety"),
                           ("Extra interest, a year", 'N("ac_tot_5")', "dash_idle"),
                           ("Still owed to you", 'N("iou_tot_6")', "dash_owed"),
@@ -479,7 +484,7 @@ def build(path, size):
         P.field(f"um_ex_{r}_0", sx_, yy, halfw - 88, 16, value=ex_def[r - 1], tip="Category")
         if r == SUBS_ROW:
             P.field(f"um_ex_{r}_1", sx_ + halfw - 84, yy, 84, 16, tip="Subscriptions you kept",
-                    calc="+".join(f'(C("sub_{k}_4")?0:N("sub_{k}_1"))' for k in range(1, 17)))
+                    calc="+".join(f'(C("sub_{k}_6")?0:N("sub_{k}_3"))' for k in range(1, 13)))
         else:
             P.field(f"um_ex_{r}_1", sx_ + halfw - 84, yy, 84, 16, num=True, tip=f"{EXP[r-1]}: usual / month")
     yy -= 21
@@ -510,12 +515,8 @@ def build(path, size):
 
     # ---------------- 5. SUBSCRIPTIONS ----------------
     y = P.page("Subscriptions and spending leaks", "Cut the waste",
-               "Go through your last two bank and card statements. List every repeat charge and ask: would I sign up for this again today? What you keep flows into your usual month.")
-    sw = CW - 4 * 70 - 2 * 52 - 24
-    y = P.table(M, y - 8, [("Service", sw, "text"), ("Per month", 70, "num", 2), ("Per year", 70, "calc", lambda p: f'N("{p}1")*12', 2),
-                           ("Used it last month?", 70, "check"), ("Cancel", 52, "check"),
-                           ("Saves / year", 70, "calc", lambda p: f'C("{p}4")?N("{p}1")*12:0', 2), ("Done", 52, "check")],
-                12, "sub", rh=19, total={1, 2, 5})
+               "Check your last two statements and list every repeat charge. Yearly ones like an annual course? Type the yearly price and pick Yearly. What you keep flows into your usual month.")
+    y = P.table(M, y - 8, sub_cols(CW - SUB_W - 4), 12, "sub", rh=19, total={3, 4, 7})
     y = P.section(M, y - 4, "Plug the other leaks: shopping, takeaways, impulse buys")
     tips = ["Set lower amounts for Shopping and Eating out in your usual month. That's your target.",
             "Wait 48 hours before any non-essential buy over a set amount.",
@@ -525,7 +526,7 @@ def build(path, size):
         P.check(f"habit_{i}", M, y - 10, 10, tip="Doing this")
         P.text(M + 18, y - 8, t_, F_BODY, 10, INK)
         y -= 20
-    P.note(M, y - 8, CW, "cancel anything you didn't use last month. Put free-trial end dates in your phone calendar the day you sign up.")
+    P.note(M, y - 8, CW, "cancel anything you haven't used in the last three months. One quiet month can be a holiday; three is a habit. Put free-trial end dates in your phone calendar the day you sign up.")
 
     # ---------------- BIG YEARLY COSTS ----------------
     y = P.page("Big yearly costs", "No more surprises",
@@ -846,6 +847,16 @@ def cover(P, kicker, title_lines, sub, fields, notice=None):
     P.text(W - M, 20, "Fill it on your phone or print it", F_BODY, 7.5, HexColor("#B9B2A3"), "right")
 
 
+def sub_cols(sw):
+    """Subscription table: type the cost as billed, pick Monthly or Yearly; the planner does the rest."""
+    return [("Service", sw, "text"), ("Cost", 54, "num", 2), ("Billed", 56, "choice", ["Monthly", "Yearly"]),
+            ("A month", 52, "calc", lambda p: f'T("{p}2")=="Yearly"?N("{p}1")/12:N("{p}1")', 2),
+            ("A year", 56, "calc", lambda p: f'T("{p}2")=="Yearly"?N("{p}1"):N("{p}1")*12', 2),
+            ("Used (3 mo)?", 62, "check"), ("Cancel", 38, "check"),
+            ("Saves a year", 58, "calc", lambda p: f'C("{p}6")?N("{p}4"):0', 2)]
+SUB_W = 54 + 56 + 52 + 56 + 62 + 38 + 58 + 7 * 4
+
+
 def currency_picker(P, x, y):
     P.c.acroForm.choice(name="cur", tooltip="Currency symbol", value="$", options=["$", "€", "£", "¥", "No symbol", "A$", "S$", "NZ$", "HK$", "C$", "Rs", "INR", "RM", "Rp", "PHP", "THB", "AED", "SAR", "ZAR", "CHF", "KRW"],
                         fieldFlags="combo edit", x=x, y=y, width=96, height=20, fontName=FIELD_FONT, fontSize=11,
@@ -863,20 +874,16 @@ def build_leak_check(path, size):
     CW = W - 2 * M
     P.logo_top = True
     y = P.page("The Subscription Leak Check", "Free tool  ·  10 minutes",
-               "Grab your last two bank or card statements. List every charge that repeats. Be honest about what you actually used. The totals add themselves up.")
+               "Grab your last two bank or card statements. List every charge that repeats, monthly or yearly. Be honest about what you actually used. The totals add themselves up.")
     P.text(W - M - 104, y - 4, "Currency", F_BODY, 9, MUTED, "right")
     currency_picker(P, W - M - 96, y - 10)
     y -= 26
-    sw = CW - 4 * 70 - 2 * 56 - 24
-    y = P.table(M, y, [("Service", sw, "text"), ("Per month", 70, "num", 2), ("Per year", 70, "calc", lambda p: f'N("{p}1")*12', 2),
-                       ("Used it last month?", 70, "check"), ("Cancel", 56, "check"),
-                       ("Saves / year", 70, "calc", lambda p: f'C("{p}4")?N("{p}1")*12:0', 2), ("Done", 56, "check")],
-                12, "lc", rh=20, total={1, 2, 5},
+    y = P.table(M, y, sub_cols(CW - SUB_W - 4), 12, "lc", rh=20, total={3, 4, 7},
                 defaults=["Video streaming", "Music", "Gym or fitness app", "Cloud storage", "News or magazines", "Shopping membership", "", "", "", "", "", ""])
     # result band
     P.box(M, y - 86, CW, 80, VAULT)
-    cols = [("You pay every year", 'N("lc_tot_2")', "lc_year"), ("Cancelling saves", 'N("lc_tot_5")', "lc_save"),
-            ("That's back each month", 'N("lc_tot_5")/12', "lc_month")]
+    cols = [("You pay every year", 'N("lc_tot_4")', "lc_year"), ("Cancelling saves", 'N("lc_tot_7")', "lc_save"),
+            ("That's back each month", 'N("lc_tot_7")/12', "lc_month")]
     bw = (CW - 28 - 20) / 3
     for i, (l, e, n) in enumerate(cols):
         bx = M + 14 + i * (bw + 10)
@@ -887,7 +894,7 @@ def build_leak_check(path, size):
         P.meta[n] = dict(num=True, dec=2, calc=e); P.order.append(n)
     y -= 106
     P.text(M, y, "THREE RULES FOR KEEP OR CANCEL", F_BOLD, 8, GOLD)
-    rules = ["Didn't use it last month? Cancel. You can rejoin in two minutes if you miss it.",
+    rules = ["Not used in the last 3 months? Cancel. You can rejoin in two minutes if you miss it.",
              "Would you sign up again today at this price? If not, cancel or downgrade.",
              "Two services doing the same job? Keep the one you open most."]
     y -= 18

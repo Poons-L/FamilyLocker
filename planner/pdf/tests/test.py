@@ -13,8 +13,10 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
         for r in range(1,7):
             for c in (1,2,3): put(f"li_{r}_{c}",str(random.randint(0,40000)))
         for r in range(1,13):
-            put(f"sub_{r}_1",f"{random.uniform(1,90):.2f}")
-            if random.random()<.4: put(f"sub_{r}_4","Yes")
+            yearly=random.random()<.4
+            put(f"sub_{r}_1",f"{random.uniform(50,600) if yearly else random.uniform(1,90):.2f}"); put(f"sub_{r}_2","Yearly" if yearly else "Monthly")
+            if random.random()<.5: put(f"sub_{r}_5","Yes")
+            if random.random()<.4: put(f"sub_{r}_6","Yes")
         for r in range(1,15): put(f"by_{r}_2",str(random.randint(0,5000))); put(f"by_{r}_4",str(random.randint(0,3000)))
         debts=[(4200,24.9,300),(1800,19.9,40),(12000,8.5,450),(9000,0,250),(3000,12,0),(0,0,0)]
         for r,(b,a,p) in enumerate(debts,1):
@@ -62,9 +64,10 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
         E[f"as_tot_{c}"]=sum(x(f"as_{r}_{c}") for r in range(1,10)); E[f"li_tot_{c}"]=sum(x(f"li_{r}_{c}") for r in range(1,7))
     E["nw_jan"]=E["as_tot_1"]-E["li_tot_1"]; E["nw_jun"]=E["as_tot_2"]-E["li_tot_2"]; E["nw_dec"]=E["as_tot_3"]-E["li_tot_3"]
     E["nw_chg"]=E["nw_dec"]-E["nw_jan"] if (has("as_1_3") or E["as_tot_3"]!=0 or E["li_tot_3"]!=0) else 0
-    for r in range(1,13): E[f"sub_{r}_2"]=x(f"sub_{r}_1")*12; E[f"sub_{r}_5"]=x(f"sub_{r}_1")*12*chk(f"sub_{r}_4")
-    E["sub_tot_1"]=sum(x(f"sub_{r}_1") for r in range(1,13))
-    for c in (2,5): E[f"sub_tot_{c}"]=sum(E[f"sub_{r}_{c}"] for r in range(1,13))
+    for r in range(1,13):
+        yr_=I.get(f"sub_{r}_2","Monthly")=="Yearly"; c_=x(f"sub_{r}_1")
+        E[f"sub_{r}_3"]=c_/12 if yr_ else c_; E[f"sub_{r}_4"]=c_ if yr_ else c_*12; E[f"sub_{r}_7"]=E[f"sub_{r}_4"]*chk(f"sub_{r}_6")
+    for c in (3,4,7): E[f"sub_tot_{c}"]=sum(E[f"sub_{r}_{c}"] for r in range(1,13))
     for r in range(1,15): E[f"by_{r}_3"]=x(f"by_{r}_2")/12
     E["by_tot_2"]=sum(x(f"by_{r}_2") for r in range(1,15)); E["by_tot_4"]=sum(x(f"by_{r}_4") for r in range(1,15)); E["by_tot_3"]=sum(E[f"by_{r}_3"] for r in range(1,15))
     E["by_pm"]=E["by_tot_3"]; E["by_left"]=max(0,E["by_tot_2"]-E["by_tot_4"])
@@ -91,7 +94,7 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
     E["iou_tot_2"]=sum(x(f"iou_{r}_2") for r in range(1,13)); E["iou_tot_6"]=sum(E[f"iou_{r}_6"] for r in range(1,13))
     # usual month
     E["um_in_tot_1"]=sum(x(f"um_in_{r}_1") for r in range(1,7))
-    E["um_ex_10_1"]=sum(0 if chk(f"sub_{k}_4") else x(f"sub_{k}_1") for k in range(1,13))
+    E["um_ex_10_1"]=sum(0 if chk(f"sub_{k}_6") else E[f"sub_{k}_3"] for k in range(1,13))
     um=lambda r: E["um_ex_10_1"] if r==10 else x(f"um_ex_{r}_1")
     E["um_ex_tot_1"]=sum(um(r) for r in range(1,19)); E["um_left"]=E["um_in_tot_1"]-E["um_ex_tot_1"]; E["um_goal"]=E["goal_pm"]
     names_in=[I.get(f"um_in_{r}_0",F[f"um_in_{r}_0"]["v"]) for r in range(1,7)]
@@ -131,7 +134,7 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
     E.update(dash_goal=t, dash_saved=s+svt, dash_reached=(s+svt)/t*100 if t>0 else 0, dash_left=max(0,t-(s+svt)),
              dash_need=max(0,t-(s+svt))/(ml-filled) if ml-filled>0 else 0,
              dash_in=erun, dash_out=sum(E[f"m{m}ex_tot_3"] for m in range(12)), dash_tax=sum(E[f"m{m}_tax"] for m in range(12)), dash_sv=svt,
-             dash_subs=E["sub_tot_5"], dash_safety=E["ef_target"], dash_idle=E["ac_tot_5"], dash_owed=E["iou_tot_6"], dash_big=E["by_tot_3"],
+             dash_subs=E["sub_tot_7"], dash_safety=E["ef_target"], dash_idle=E["ac_tot_5"], dash_owed=E["iou_tot_6"], dash_big=E["by_tot_3"],
              dash_nwj=E["nw_jan"], dash_nwd=E["nw_dec"], dash_nwc=E["nw_chg"], dash_nsd=sum(E[f"m{m}_nscount"] for m in range(12)), dash_debt=E["db_tot_1"])
     E["dash_rate"]=svt/erun*100 if erun else 0
     calc=[k for k,v in F.items() if v["calc"]]

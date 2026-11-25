@@ -29,7 +29,7 @@ That gym you haven't been to since March is still charging you. So is the app yo
 
 Grab your last two bank or card statements and run this one-page check:
 - List every repeat charge
-- Tick what you actually used last month
+- Tick what you've actually used in the last 3 months
 - Tick what to cancel
 - See what you pay a year, and what cancelling puts back
 
@@ -61,7 +61,7 @@ Most budget templates make you do the adding up. This one doesn't.
 - **My year at a glance:** a one-page summary that fills itself in: goal progress, money in and out, money found, net worth and habits
 - **Reality check:** tells you straight away if your goal is bigger than your pay
 - **Savings goal:** your target split into monthly, weekly and daily amounts, with milestone rewards
-- **Subscriptions and spending leaks:** tick what you didn't use, cancel it, and see the yearly saving. What you keep flows into your usual month
+- **Subscriptions and spending leaks:** pick monthly or yearly billing, tick what you haven't used in 3 months, cancel it, and see the yearly saving. What you keep flows into your usual month
 - **Big yearly costs:** holidays, insurance, festivals, school fees and medical check-ups, spread into a monthly set-aside so they never ambush you
 - **Idle money check:** cash earning almost nothing, and what a better rate would add
 - **Owed to me:** track every IOU, with gentle, clear and firm reminder scripts (the kind of words you'd use in a hard conversation, just about money)
