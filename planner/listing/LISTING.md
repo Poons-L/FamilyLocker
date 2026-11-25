@@ -50,7 +50,7 @@ Found a leak? There are usually more. The Financial Planner 2027 runs this check
 **Description:**
 Most budget templates make you do the adding up. This one doesn't.
 
-28 fillable pages. Type your numbers, and the gold boxes total themselves.
+26 fillable pages. Type your numbers, and the gold boxes total themselves.
 
 **Inside**
 - **Set up once, then ten minutes a month:** type your usual month one time and every monthly page fills in its plan. Each month you only type what actually happened
@@ -61,11 +61,10 @@ Most budget templates make you do the adding up. This one doesn't.
 - **My year at a glance:** a one-page summary that fills itself in: goal progress, money in and out, money found, net worth and habits
 - **Reality check:** tells you straight away if your goal is bigger than your pay
 - **Savings goal:** your target split into monthly, weekly and daily amounts, with milestone rewards
-- **Subscription audit and spending leaks:** find the money that slips out quietly
+- **Subscriptions and spending leaks:** tick what you didn't use, cancel it, and see the yearly saving. What you keep flows into your usual month
 - **Big yearly costs:** holidays, insurance, festivals, school fees and medical check-ups, spread into a monthly set-aside so they never ambush you
 - **Idle money check:** cash earning almost nothing, and what a better rate would add
 - **Owed to me:** track every IOU, with gentle, clear and firm reminder scripts (the kind of words you'd use in a hard conversation, just about money)
-- **Earnings tracker:** every income source, month by month, and the % you saved
 - **12 monthly budgets:** 18 spending categories including travel, medical, kids and education, home repairs and miscellaneous; planned vs actual, a no-spend calendar, and a monthly win
 - **Year in review:** your year in numbers, plus honest reflection prompts
 

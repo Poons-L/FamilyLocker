@@ -369,7 +369,7 @@ def build(path, size):
                           ("Moved to savings", SAVED, "dash_sv"),
                           ("% of earnings saved", 'N("dash_in")>0?N("dash_sv")/N("dash_in")*100:0', "dash_rate")]),
         ("Money you found", [("Subscriptions cut, a year", 'N("sub_tot_5")', "dash_subs"),
-                          ("Leaks plugged, a year", 'N("lk_tot_4")', "dash_leaks"),
+                          ("Safety net to keep", 'N("ef_target")', "dash_safety"),
                           ("Extra interest, a year", 'N("ac_tot_5")', "dash_idle"),
                           ("Still owed to you", 'N("iou_tot_6")', "dash_owed"),
                           ("Yearly costs, set aside a month", 'N("by_tot_3")', "dash_big")]),
@@ -453,13 +453,6 @@ def build(path, size):
         P.check(f"ms_done_{p}", W - M - 12, y - 14, 12, tip="Reached")
         y -= 26
     P.text(W - M - 6, y + 112, "Done", F_BOLD, 7.5, MUTED, "right")
-    y -= 10
-    y = P.section(M, y, "Other goals this year")
-    y = P.table(M, y, [("Goal", CW - 4 * 84 - 16, "text"), ("Target", 84, "num"), ("Months away", 84, "num"),
-                       ("Saved so far", 84, "num"),
-                       ("Per month", 84, "calc", lambda p: f'(N("{p}1")-N("{p}3"))/Math.max(1,N("{p}2"))')],
-                5, "og", rh=19)
-
     # ---------------- MY USUAL MONTH ----------------
     y = P.page("My usual month", "Set up once",
                "Type your normal month here, one time. Every monthly page copies this plan, so each month you only type what actually happened.")
@@ -516,36 +509,23 @@ def build(path, size):
         P.field(n, xx, y - 60, q4, 24, calc=expr, size=12)
 
     # ---------------- 5. SUBSCRIPTIONS ----------------
-    y = P.page("Subscription audit", "Cut the waste",
-               "Go through your bank and card statements for the last two months and list every repeat charge. Ask one question of each: would I sign up for this again today?")
+    y = P.page("Subscriptions and spending leaks", "Cut the waste",
+               "Go through your last two bank and card statements. List every repeat charge and ask: would I sign up for this again today? What you keep flows into your usual month.")
     sw = CW - 4 * 70 - 2 * 52 - 24
     y = P.table(M, y - 8, [("Service", sw, "text"), ("Per month", 70, "num", 2), ("Per year", 70, "calc", lambda p: f'N("{p}1")*12', 2),
                            ("Used it last month?", 70, "check"), ("Cancel", 52, "check"),
                            ("Saves / year", 70, "calc", lambda p: f'C("{p}4")?N("{p}1")*12:0', 2), ("Done", 52, "check")],
-                16, "sub", rh=19, total={1, 2, 5})
-    P.note(M, y - 6, CW, "cancel anything you didn't use last month. Swap yearly plans for monthly ones you can pause. Put free-trial end dates in your phone calendar the day you sign up.")
-
-    # ---------------- 6. SPENDING LEAKS ----------------
-    y = P.page("Spending leaks", "Find the money",
-               "These are the categories where money slips out quietly. Write what you usually spend in a month, then a target you can stick to without feeling deprived.")
-    lw = CW - 4 * 88 - 16
-    y = P.table(M, y - 8, [("Category", lw, "text"), ("Usually / month", 88, "num"), ("Target / month", 88, "num"),
-                           ("Saves / month", 88, "calc", lambda p: f'Math.max(0,N("{p}1")-N("{p}2"))'),
-                           ("Saves / year", 88, "calc", lambda p: f'Math.max(0,N("{p}1")-N("{p}2"))*12')],
-                12, "lk", rh=21, total={1, 2, 3, 4},
-                defaults=["Online shopping", "Eating out and delivery", "Coffee and snacks", "Clothes and shoes", "Impulse buys",
-                          "Taxis and ride-hailing", "Entertainment and nights out", "Gadgets and gaming", "Beauty and grooming",
-                          "Alcohol", "", ""])
-    y -= 4
-    y = P.section(M, y, "Habits that help")
-    tips = ["Wait 48 hours before any non-essential purchase over a set amount.",
-            "Delete saved cards from shopping apps so every buy takes effort.",
-            "Unsubscribe from sale emails. Fewer prompts, fewer purchases.",
-            "Set a weekly cash or card limit for flexible spending."]
-    for t in tips:
-        P.check(f"habit_{tips.index(t)}", M, y - 10, 10)
-        P.text(M + 18, y - 8, t, F_BODY, 10, INK)
+                12, "sub", rh=19, total={1, 2, 5})
+    y = P.section(M, y - 4, "Plug the other leaks: shopping, takeaways, impulse buys")
+    tips = ["Set lower amounts for Shopping and Eating out in your usual month. That's your target.",
+            "Wait 48 hours before any non-essential buy over a set amount.",
+            "Delete saved cards from shopping apps so every purchase takes effort.",
+            "Unsubscribe from sale emails. Fewer prompts, fewer purchases."]
+    for i, t_ in enumerate(tips):
+        P.check(f"habit_{i}", M, y - 10, 10, tip="Doing this")
+        P.text(M + 18, y - 8, t_, F_BODY, 10, INK)
         y -= 20
+    P.note(M, y - 8, CW, "cancel anything you didn't use last month. Put free-trial end dates in your phone calendar the day you sign up.")
 
     # ---------------- BIG YEARLY COSTS ----------------
     y = P.page("Big yearly costs", "No more surprises",
@@ -670,41 +650,6 @@ def build(path, size):
     y -= 18
     P.text(M, y, "On track? appears once you fill in that month's savings: how far ahead (+) or behind (-) your target you are.", F_BODY, 8.5, MUTED)
     y -= 26
-    y = P.section(M, y, "Colour it in: tick a box for every 5% of your goal")
-    bs = (CW - 19 * 6) / 20
-    for i in range(20):
-        P.check(f"tr_box_{i}", M + i * (bs + 6), y - bs, bs, tip=f"{(i+1)*5}%")
-        if (i + 1) % 5 == 0:
-            P.text(M + i * (bs + 6) + bs / 2, y - bs - 12, f"{(i+1)*5}%", F_MONO, 7.5, MUTED, "center")
-
-    # ---------------- EARNINGS ----------------
-    y = P.page(f"My earnings {YEAR}", "Income",
-               "Everything you earn, month by month. Actual figures fill in from the income box on each monthly page, so you only type them once.")
-    y -= 4
-    P.text(M, y, f"My earnings goal for {YEAR}", F_BODY, 9.5, MUTED); P.field("er_goal", M + 140, y - 5, 110, 17, num=True)
-    P.text(M + 270, y, "Earned so far", F_BODY, 9.5, MUTED); P.field("er_sofar", M + 340, y - 5, 110, 17, calc=SUM([f"m{k}in_tot_2" for k in range(12)]))
-    y -= 30
-    tw = (CW - 5 * 4) / 6
-    heads = ["Month", "Planned", "Earned", "Running total", "Saved", "% saved"]
-    for i, h in enumerate(heads):
-        P.text(M + i * (tw + 4) + (2 if i == 0 else tw - 3), y, h, F_BOLD, 7.5, MUTED, "left" if i == 0 else "right")
-    y -= 6
-    for m in range(12):
-        y -= 22
-        P.text(M + 2, y + 5, MONTHS[m], F_BODY, 10.5, INK)
-        x = M + tw + 4
-        P.field(f"er_pl_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_1")'); x += tw + 4
-        P.field(f"er_ac_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")'); x += tw + 4
-        P.field(f"er_run_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")!==0?' + "+".join(f'N("m{k}in_tot_2")' for k in range(m + 1)) + ':0'); x += tw + 4
-        P.field(f"er_sv_{m}", x, y, tw, 18, calc=f'N("m{m}_saved")'); x += tw + 4
-        P.field(f"er_rate_{m}", x, y, tw, 18, calc=f'N("m{m}in_tot_2")>0?N("m{m}_saved")/N("m{m}in_tot_2")*100:0')
-    y -= 24
-    P.text(M + 2, y + 5, "Total", F_BOLD, 10.5, INK)
-    P.field("er_tot_pl", M + (tw + 4), y, tw, 18, calc=SUM([f"er_pl_{k}" for k in range(12)]))
-    P.field("er_tot_ac", M + 2 * (tw + 4), y, tw, 18, calc=SUM([f"er_ac_{k}" for k in range(12)]))
-    P.field("er_tot_sv", M + 4 * (tw + 4), y, tw, 18, calc=SUM([f"er_sv_{k}" for k in range(12)]))
-    P.field("er_tot_rate", M + 5 * (tw + 4), y, tw, 18, calc='N("er_tot_ac")>0?N("er_tot_sv")/N("er_tot_ac")*100:0')
-    y -= 34
     P.note(M, y, CW, "saving has a floor; earning doesn't. Each quarter, pick one move: ask for a raise with evidence (the Appraisal Season Kit helps), take a paid side project, or sell what you no longer use.")
 
     # ---------------- 10-21. MONTHLY PAGES ----------------

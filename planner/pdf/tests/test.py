@@ -8,15 +8,13 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
     if not blank:
         put("cur","S$"); put("tax_rate","20"); put("start_month",start)
         put("goal_target","100000"); put("goal_start","22000"); put("goal_pay","15000")
-        for r in range(1,6): put(f"og_{r}_1",str(random.randint(1000,9000))); put(f"og_{r}_2",str(random.randint(0,12))); put(f"og_{r}_3",str(random.randint(0,900)))
         for r in range(1,10):
             for c in (1,2,3): put(f"as_{r}_{c}",str(random.randint(0,90000)))
         for r in range(1,7):
             for c in (1,2,3): put(f"li_{r}_{c}",str(random.randint(0,40000)))
-        for r in range(1,17):
+        for r in range(1,13):
             put(f"sub_{r}_1",f"{random.uniform(1,90):.2f}")
             if random.random()<.4: put(f"sub_{r}_4","Yes")
-        for r in range(1,13): put(f"lk_{r}_1",str(random.randint(0,900))); put(f"lk_{r}_2",str(random.randint(0,1000)))
         for r in range(1,15): put(f"by_{r}_2",str(random.randint(0,5000))); put(f"by_{r}_4",str(random.randint(0,3000)))
         debts=[(4200,24.9,300),(1800,19.9,40),(12000,8.5,450),(9000,0,250),(3000,12,0),(0,0,0)]
         for r,(b,a,p) in enumerate(debts,1):
@@ -60,17 +58,13 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
     sh=E["goal_share"]
     TX["goal_flag"]="Add your take-home pay to check this goal." if (pay<=0 or E["goal_pm"]<=0) else ("More than you earn each month. Stretch the timeline or grow income first." if E["goal_pm"]>pay else ("Over half your pay. Very ambitious: plan big cuts or extra income." if sh>50 else ("A stretch, but doable on a tight budget." if sh>20 else "Comfortable. You could aim higher.")))
     for p in (25,50,75,100): E[f"ms_amt_{p}"]=s+(t-s)*p/100
-    for r in range(1,6): E[f"og_{r}_4"]=(x(f"og_{r}_1")-x(f"og_{r}_3"))/max(1,x(f"og_{r}_2"))
     for c in (1,2,3):
         E[f"as_tot_{c}"]=sum(x(f"as_{r}_{c}") for r in range(1,10)); E[f"li_tot_{c}"]=sum(x(f"li_{r}_{c}") for r in range(1,7))
     E["nw_jan"]=E["as_tot_1"]-E["li_tot_1"]; E["nw_jun"]=E["as_tot_2"]-E["li_tot_2"]; E["nw_dec"]=E["as_tot_3"]-E["li_tot_3"]
     E["nw_chg"]=E["nw_dec"]-E["nw_jan"] if (has("as_1_3") or E["as_tot_3"]!=0 or E["li_tot_3"]!=0) else 0
-    for r in range(1,17): E[f"sub_{r}_2"]=x(f"sub_{r}_1")*12; E[f"sub_{r}_5"]=x(f"sub_{r}_1")*12*chk(f"sub_{r}_4")
-    E["sub_tot_1"]=sum(x(f"sub_{r}_1") for r in range(1,17))
-    for c in (2,5): E[f"sub_tot_{c}"]=sum(E[f"sub_{r}_{c}"] for r in range(1,17))
-    for r in range(1,13): E[f"lk_{r}_3"]=max(0,x(f"lk_{r}_1")-x(f"lk_{r}_2")); E[f"lk_{r}_4"]=E[f"lk_{r}_3"]*12
-    for c in (1,2): E[f"lk_tot_{c}"]=sum(x(f"lk_{r}_{c}") for r in range(1,13))
-    for c in (3,4): E[f"lk_tot_{c}"]=sum(E[f"lk_{r}_{c}"] for r in range(1,13))
+    for r in range(1,13): E[f"sub_{r}_2"]=x(f"sub_{r}_1")*12; E[f"sub_{r}_5"]=x(f"sub_{r}_1")*12*chk(f"sub_{r}_4")
+    E["sub_tot_1"]=sum(x(f"sub_{r}_1") for r in range(1,13))
+    for c in (2,5): E[f"sub_tot_{c}"]=sum(E[f"sub_{r}_{c}"] for r in range(1,13))
     for r in range(1,15): E[f"by_{r}_3"]=x(f"by_{r}_2")/12
     E["by_tot_2"]=sum(x(f"by_{r}_2") for r in range(1,15)); E["by_tot_4"]=sum(x(f"by_{r}_4") for r in range(1,15)); E["by_tot_3"]=sum(E[f"by_{r}_3"] for r in range(1,15))
     E["by_pm"]=E["by_tot_3"]; E["by_left"]=max(0,E["by_tot_2"]-E["by_tot_4"])
@@ -97,7 +91,7 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
     E["iou_tot_2"]=sum(x(f"iou_{r}_2") for r in range(1,13)); E["iou_tot_6"]=sum(E[f"iou_{r}_6"] for r in range(1,13))
     # usual month
     E["um_in_tot_1"]=sum(x(f"um_in_{r}_1") for r in range(1,7))
-    E["um_ex_10_1"]=sum(0 if chk(f"sub_{k}_4") else x(f"sub_{k}_1") for k in range(1,17))
+    E["um_ex_10_1"]=sum(0 if chk(f"sub_{k}_4") else x(f"sub_{k}_1") for k in range(1,13))
     um=lambda r: E["um_ex_10_1"] if r==10 else x(f"um_ex_{r}_1")
     E["um_ex_tot_1"]=sum(um(r) for r in range(1,19)); E["um_left"]=E["um_in_tot_1"]-E["um_ex_tot_1"]; E["um_goal"]=E["goal_pm"]
     names_in=[I.get(f"um_in_{r}_0",F[f"um_in_{r}_0"]["v"]) for r in range(1,7)]
@@ -137,7 +131,7 @@ def run_case(specfile, name, start="January", months=range(12), seed=1, extra=No
     E.update(dash_goal=t, dash_saved=s+svt, dash_reached=(s+svt)/t*100 if t>0 else 0, dash_left=max(0,t-(s+svt)),
              dash_need=max(0,t-(s+svt))/(ml-filled) if ml-filled>0 else 0,
              dash_in=erun, dash_out=sum(E[f"m{m}ex_tot_3"] for m in range(12)), dash_tax=sum(E[f"m{m}_tax"] for m in range(12)), dash_sv=svt,
-             dash_subs=E["sub_tot_5"], dash_leaks=E["lk_tot_4"], dash_idle=E["ac_tot_5"], dash_owed=E["iou_tot_6"], dash_big=E["by_tot_3"],
+             dash_subs=E["sub_tot_5"], dash_safety=E["ef_target"], dash_idle=E["ac_tot_5"], dash_owed=E["iou_tot_6"], dash_big=E["by_tot_3"],
              dash_nwj=E["nw_jan"], dash_nwd=E["nw_dec"], dash_nwc=E["nw_chg"], dash_nsd=sum(E[f"m{m}_nscount"] for m in range(12)), dash_debt=E["db_tot_1"])
     E["dash_rate"]=svt/erun*100 if erun else 0
     calc=[k for k,v in F.items() if v["calc"]]
@@ -161,4 +155,4 @@ if __name__=="__main__":
     print("    blank copy: non-empty boxes:", [(k,v) for k,v in V.items() if json.load(open(spec))["fields"][k]["calc"] and v not in ("",) and not k.endswith("_0") and k!="goal_flag"][:5],
           "| March names:", V["m2ex_1_0"], V["m2in_1_0"], "| flag:", V["goal_flag"])
     V,D,E,TX,bad=run_case(spec,"Your test: 500,000 goal + Jan salary",blank=True,extra={"goal_target":"500000","goal_pay":"12000","m0in_1_2":"12000"})
-    print("    shows:", D.get("goal_pm"), V.get("goal_flag"), "| tracker Dec:", repr(V["tr_ok_11"]), "| earnings Feb:", repr(V["er_run_1"]))
+    print("    shows:", D.get("goal_pm"), V.get("goal_flag"), "| tracker Dec:", repr(V["tr_ok_11"]), "| year review Feb income:", repr(V["yr_1_0"]))
